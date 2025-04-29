@@ -22,6 +22,7 @@ update_live_price()
 header = st.container()
 top_row = st.columns([2, 1])
 middle_row = st.columns(2)
+chart_container = st.container()
 
 # --- Static Mock Data ---
 @st.cache_data
@@ -36,14 +37,12 @@ def get_static_technical_summary():
 signals = [
     {"time": "14:30", "type": "SELL", "entry": 1975.50, "tp": 1962.00, "sl": 1985.00, "volume": 18250, "max_volume": 25000, "strength": 75},
     {"time": "14:00", "type": "BUY",  "entry": 1968.20, "tp": 1980.00, "sl": 1960.00, "volume": 20000, "max_volume": 25000, "strength": 68},
-    {"time": "13:30", "type": "HOLD", "entry": None,     "tp": None,    "sl": None,    "volume": 15000, "max_volume": 25000, "strength": 50},
-    {"time": "13:00", "type": "SELL", "entry": 1972.80, "tp": 1960.00, "sl": 1983.00, "volume": 21000, "max_volume": 25000, "strength": 80},
-    {"time": "12:30", "type": "BUY",  "entry": 1965.00, "tp": 1975.00, "sl": 1958.00, "volume": 22000, "max_volume": 25000, "strength": 77},
-    {"time": "12:00", "type": "SELL", "entry": 1980.00, "tp": 1967.00, "sl": 1988.00, "volume": 19500, "max_volume": 25000, "strength": 72},
-    {"time": "11:30", "type": "BUY",  "entry": 1962.00, "tp": 1972.00, "sl": 1955.00, "volume": 24000, "max_volume": 25000, "strength": 82},
-    {"time": "11:00", "type": "SELL", "entry": 1970.00, "tp": 1958.00, "sl": 1978.00, "volume": 18000, "max_volume": 25000, "strength": 70},
-    {"time": "10:30", "type": "HOLD", "entry": None,     "tp": None,    "sl": None,    "volume": 16000, "max_volume": 25000, "strength": 55},
-    {"time": "10:00", "type": "BUY",  "entry": 1955.00, "tp": 1968.00, "sl": 1948.00, "volume": 23000, "max_volume": 25000, "strength": 79},
+    {"time": "13:30", "type": "SELL", "entry": 1972.80, "tp": 1960.00, "sl": 1983.00, "volume": 21000, "max_volume": 25000, "strength": 80},
+    {"time": "13:00", "type": "BUY",  "entry": 1965.00, "tp": 1975.00, "sl": 1958.00, "volume": 22000, "max_volume": 25000, "strength": 77},
+    {"time": "12:30", "type": "SELL", "entry": 1980.00, "tp": 1967.00, "sl": 1988.00, "volume": 19500, "max_volume": 25000, "strength": 72},
+    {"time": "12:00", "type": "BUY",  "entry": 1962.00, "tp": 1972.00, "sl": 1955.00, "volume": 24000, "max_volume": 25000, "strength": 82},
+    {"time": "11:30", "type": "SELL", "entry": 1970.00, "tp": 1958.00, "sl": 1978.00, "volume": 18000, "max_volume": 25000, "strength": 70},
+    {"time": "11:00", "type": "BUY",  "entry": 1955.00, "tp": 1968.00, "sl": 1948.00, "volume": 23000, "max_volume": 25000, "strength": 79},
 ]
 
 # --- Header Section ---
@@ -55,10 +54,6 @@ with header:
     with cols[2]: st.markdown("<small><b>Today's Low:</b> $1948.00</small>", unsafe_allow_html=True)
     with cols[3]: st.markdown("<small><b>24h Change:</b> +1.25%</small>", unsafe_allow_html=True)
     st.markdown("---")
-
-# --- Active Signal State ---
-if "active_signal" not in st.session_state:
-    st.session_state.active_signal = signals[0]
 
 # --- Top Row: Chart & Active Signal ---
 with top_row[0]:
@@ -74,8 +69,7 @@ with top_row[0]:
 
 with top_row[1]:
     st.markdown("<h5>🚦 Active Signal</h5>", unsafe_allow_html=True)
-
-    signal = st.session_state.active_signal
+    signal = signals[0]
     volume_pct = (signal["volume"] / signal["max_volume"]) * 100
     icon = "🔴" if signal["type"] == "SELL" else "🟢" if signal["type"] == "BUY" else "⚪"
     st.markdown(f"#### {icon} {signal['type']} Recommendation")
@@ -91,11 +85,10 @@ with top_row[1]:
     st.markdown("**Complementary Indicator Confidence:**")
     st.markdown(f"<small><b>Stochastic Oscillator Match:</b> {stochastic_pct:.1f}%</small>", unsafe_allow_html=True)
     st.progress(stochastic_pct, text="Stochastic Confidence")
-
     st.markdown(f"<small><b>ATR Volatility Context:</b> {atr_pct:.1f}%</small>", unsafe_allow_html=True)
     st.progress(atr_pct, text="ATR Confidence")
 
-# --- Middle Row: Technical Summary + History ---
+# --- Middle Row: Technical Summary + Signal History ---
 with middle_row[0]:
     st.markdown("<h5>🧠 Technical Summary</h5>", unsafe_allow_html=True)
     summary_df = pd.DataFrame(get_static_technical_summary())
@@ -103,33 +96,36 @@ with middle_row[0]:
 
 with middle_row[1]:
     st.markdown("<h5>🕒 Signal History</h5>", unsafe_allow_html=True)
-
-    pip_moves = []
-    for i in range(1, len(signals)-1):
-        entry = signals[i]["entry"]
-        next_entry = signals[i+1]["entry"]
-        if entry and next_entry:
-            pip_moves.append(abs(entry - next_entry) * 10)
-        else:
-            pip_moves.append("-")
-    pip_moves.append("-")
-
     history = {
-        "Time": [s["time"] for s in signals[1:]],
-        "Signal": ["🔴 Sell" if s["type"] == "SELL" else "🟢 Buy" if s["type"] == "BUY" else "⚪ Hold" for s in signals[1:]],
-        "Price": [f"{s['entry']:.2f}" if s["entry"] else "-" for s in signals[1:]],
-        "Pips to Reversal": pip_moves
+        "Time": [],
+        "Signal": [],
+        "Price": [],
+        "Pips to Reversal": []
     }
+
+    for i in range(1, len(signals)):
+        current = signals[i]
+        next_signal = signals[i + 1] if i + 1 < len(signals) else None
+
+        price = current["entry"]
+        pips = "-"
+        if price and next_signal and next_signal["entry"]:
+            pips = abs(next_signal["entry"] - price) * 10  # XAU pip is usually $0.1
+
+        history["Time"].append(current["time"])
+        history["Signal"].append("🔴 Sell" if current["type"] == "SELL" else "🟢 Buy")
+        history["Price"].append(f"{price:.2f}" if price else "-")
+        history["Pips to Reversal"].append(f"{pips:.1f}" if isinstance(pips, float) else "-")
+
     st.dataframe(pd.DataFrame(history), use_container_width=True, hide_index=True, height=300)
 
 # --- Footer ---
 st.caption("Demo Data • Last Updated: " + time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()))
 
-# --- Refresh Timer (60s) ---
+# --- Refresh Logic (every 60s) ---
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
-    update_live_price()
     st.experimental_rerun()
