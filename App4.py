@@ -90,3 +90,6 @@ for i in range(countdown, 0, -1):
     placeholder.markdown(f"⏳ Refreshing in **{i} seconds**...")
     time.sleep(1)
 st.rerun()
+requirements.txt ( streamlit
+pandas
+yfinance)
