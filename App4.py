@@ -112,9 +112,51 @@ with chart_container:
     st.markdown("---")
     st.markdown("<h5>📉 Technical Indicators</h5>", unsafe_allow_html=True)
     cols = st.columns(3)
-    with cols[0]: st.image("https://via.placeholder.com/400x200.png?text=RSI+Indicator")
-    with cols[1]: st.image("https://via.placeholder.com/400x200.png?text=MACD+Indicator")
-    with cols[2]: st.image("https://via.placeholder.com/400x200.png?text=Volume+Chart")
+    import matplotlib.pyplot as plt
+import numpy as np
+
+with chart_container:
+    st.markdown("---")
+    st.markdown("<h5>📉 Technical Indicators</h5>", unsafe_allow_html=True)
+
+    # Simulate mock data
+    prices = np.linspace(1950, 1980, 50) + np.random.normal(0, 1, 50)
+    rsi = np.clip(50 + np.random.normal(0, 10, 50), 0, 100)
+    macd = np.random.normal(0, 1, 50)
+    signal = macd + np.random.normal(0, 0.3, 50)
+    volume = np.random.randint(15000, 25000, 50)
+
+    col1, col2, col3 = st.columns(3)
+
+    # RSI Plot
+    with col1:
+        fig, ax = plt.subplots(figsize=(4, 2))
+        ax.plot(rsi, label='RSI', color='purple')
+        ax.axhline(70, color='red', linestyle='--')
+        ax.axhline(30, color='green', linestyle='--')
+        ax.set_title("RSI (Relative Strength Index)")
+        ax.set_ylim(0, 100)
+        ax.legend()
+        st.pyplot(fig)
+
+    # MACD Plot
+    with col2:
+        fig, ax = plt.subplots(figsize=(4, 2))
+        ax.plot(macd, label='MACD', color='blue')
+        ax.plot(signal, label='Signal Line', color='orange')
+        ax.set_title("MACD")
+        ax.axhline(0, color='gray', linestyle='--')
+        ax.legend()
+        st.pyplot(fig)
+
+    # Volume Plot
+    with col3:
+        fig, ax = plt.subplots(figsize=(4, 2))
+        ax.bar(range(len(volume)), volume, color='teal')
+        ax.set_title("Volume")
+        ax.set_ylim(10000, 26000)
+        st.pyplot(fig)
+
     st.markdown("---")
 
 # --- Footer ---
