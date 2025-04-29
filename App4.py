@@ -56,7 +56,7 @@ with header:
     with cols[3]: st.markdown("<small><b>24h Change:</b> +1.25%</small>", unsafe_allow_html=True)
     st.markdown("---")
 
-# --- Refresh State ---
+# --- Active Signal State ---
 if "active_signal" not in st.session_state:
     st.session_state.active_signal = signals[0]
 
