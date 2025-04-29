@@ -37,7 +37,7 @@ levels = {
     "100.0%": low,
 }
 
-# --- Updated Mock History with Icons ---
+# --- Mock History with Icons ---
 def generate_mock_history():
     base_time = df["Time"].iloc[-1]
     return pd.DataFrame([
@@ -56,7 +56,10 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("Fibonacci Levels (Demo Data)")
     fib_df = pd.DataFrame(levels.items(), columns=["Level", "Price"])
-    st.dataframe(fib_df.set_index("Level").style.format({"Price": "{:.2f}"}))
+    st.dataframe(
+        fib_df.set_index("Level").style.format({"Price": "{:.2f}"}),
+        use_container_width=True  # Added here
+    )
     
     st.subheader("Demo Signal")
     st.metric(label="Current Price", value="$1975.50")
@@ -73,10 +76,11 @@ with col2:
             f"color: {'#4CAF50' if 'BUY' in row.Signal else '#FF5252'}"
             for _ in row], axis=1),
         height=400,
-        column_order=["Time", "Signal", "Price"]
+        column_order=["Time", "Signal", "Price"],
+        use_container_width=True  # Added here
     )
 
-# --- Signal Log with Icons ---
+# --- Signal Log ---
 st.subheader("Signal Log (Demo)")
 demo_log = [
     {"time": "2024-02-20 15:00:00", "signal": "🔴 SELL @ 1972.80"},
@@ -88,5 +92,7 @@ for s in demo_log:
 
 # --- Chart Placeholder ---
 st.subheader("Chart Placeholder")
-st.image("https://via.placeholder.com/800x400.png?text=TradingView+Chart+Area",
-         use_column_width=True)
+st.image(
+    "https://via.placeholder.com/800x400.png?text=TradingView+Chart+Area",
+    use_container_width=True  # Updated from use_column_width
+)
