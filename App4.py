@@ -4,7 +4,7 @@ import streamlit.components.v1 as components
 
 # --- Streamlit Config ---
 st.set_page_config(page_title="XAUUSD Fibonacci Demo", layout="wide")
-st.markdown("<h3 style='margin-bottom: 0;'>📈 GOLD (XAU/USD) Fibonacci Signal Scanner</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='margin-bottom: 0;'>📈 GOLD (XAU/USD) Fibonacci Signal Scanner by master</h3>", unsafe_allow_html=True)
 
 # --- Layout Structure ---
 header = st.container()
@@ -22,6 +22,20 @@ def get_static_technical_summary():
         "MACD": ["Bearish", "Bearish", "Neutral", "Bullish", "Bullish", "Bullish"]
     }
 
+# --- Mocked Signals (10 entries) ---
+signals = [
+    {"time": "14:30", "type": "SELL", "entry": 1975.50, "tp": 1962.00, "sl": 1985.00, "volume": 18250, "max_volume": 25000, "strength": 75},
+    {"time": "13:45", "type": "BUY",  "entry": 1968.20, "tp": 1980.00, "sl": 1960.00, "volume": 20000, "max_volume": 25000, "strength": 68},
+    {"time": "13:00", "type": "HOLD", "entry": None,     "tp": None,    "sl": None,    "volume": 15000, "max_volume": 25000, "strength": 50},
+    {"time": "12:15", "type": "SELL", "entry": 1972.80, "tp": 1960.00, "sl": 1983.00, "volume": 21000, "max_volume": 25000, "strength": 80},
+    {"time": "11:30", "type": "BUY",  "entry": 1965.00, "tp": 1975.00, "sl": 1958.00, "volume": 22000, "max_volume": 25000, "strength": 77},
+    {"time": "10:45", "type": "SELL", "entry": 1980.00, "tp": 1967.00, "sl": 1988.00, "volume": 19500, "max_volume": 25000, "strength": 72},
+    {"time": "10:00", "type": "BUY",  "entry": 1962.00, "tp": 1972.00, "sl": 1955.00, "volume": 24000, "max_volume": 25000, "strength": 82},
+    {"time": "09:30", "type": "SELL", "entry": 1970.00, "tp": 1958.00, "sl": 1978.00, "volume": 18000, "max_volume": 25000, "strength": 70},
+    {"time": "08:45", "type": "HOLD", "entry": None,     "tp": None,    "sl": None,    "volume": 16000, "max_volume": 25000, "strength": 55},
+    {"time": "08:00", "type": "BUY",  "entry": 1955.00, "tp": 1968.00, "sl": 1948.00, "volume": 23000, "max_volume": 25000, "strength": 79},
+]
+
 # --- Header Section ---
 with header:
     st.markdown("---")
@@ -32,8 +46,8 @@ with header:
     with cols[3]: st.markdown("<small><b>24h Change:</b> +1.25%</small>", unsafe_allow_html=True)
     st.markdown("---")
 
-# --- Top Row: TradingView Chart & Signal Box ---
-with top_row[0]:  # Chart
+# --- Top Row: Chart & Active Signal ---
+with top_row[0]:
     st.markdown("<h5>📊 Live Chart (TradingView)</h5>", unsafe_allow_html=True)
     tv_chart = """
     <div class="tradingview-widget-container" style="height:420px;">
@@ -46,13 +60,19 @@ with top_row[0]:  # Chart
 
 with top_row[1]:  # Active Signal
     st.markdown("<h5>🚦 Active Signal</h5>", unsafe_allow_html=True)
-    st.markdown("#### 🔴 SELL Recommendation")
-    st.markdown("<small><b>Entry Price:</b> 1975.50</small>", unsafe_allow_html=True)
-    st.markdown("<small><b>Take Profit:</b> 1962.00</small>", unsafe_allow_html=True)
-    st.markdown("<small><b>Stop Loss:</b> 1985.00</small>", unsafe_allow_html=True)
-    st.progress(75, text="Signal Strength")
 
-# --- Middle Row: Technical Summary (Mocked) + Placeholder for Levels/History ---
+    signal = signals[0]
+    volume_pct = (signal["volume"] / signal["max_volume"]) * 100
+    icon = "🔴" if signal["type"] == "SELL" else "🟢" if signal["type"] == "BUY" else "⚪"
+
+    st.markdown(f"#### {icon} {signal['type']} Recommendation")
+    st.markdown(f"<small><b>Entry Price:</b> {signal['entry']}</small>", unsafe_allow_html=True)
+    st.markdown(f"<small><b>Take Profit:</b> {signal['tp']}</small>", unsafe_allow_html=True)
+    st.markdown(f"<small><b>Stop Loss:</b> {signal['sl']}</small>", unsafe_allow_html=True)
+    st.markdown(f"<small><b>Volume:</b> {signal['volume']:,} ({volume_pct:.1f}%)</small>", unsafe_allow_html=True)
+    st.progress(signal["strength"], text="Signal Strength")
+
+# --- Middle Row: Technical Summary + History ---
 with middle_row[0]:
     st.markdown("<h5>🧠 Technical Summary</h5>", unsafe_allow_html=True)
     tech_summary = get_static_technical_summary()
@@ -61,14 +81,14 @@ with middle_row[0]:
 
 with middle_row[1]:
     st.markdown("<h5>🕒 Signal History</h5>", unsafe_allow_html=True)
-    signal_history = {
-        "Time": ["14:30", "13:45", "12:15", "11:00"],
-        "Signal": ["🔴 Sell", "🟢 Buy", "⚪ Hold", "🔴 Sell"],
-        "Price": ["1975.50", "1968.20", "-", "1972.80"]
+    history_data = {
+        "Time": [s["time"] for s in signals[1:]],
+        "Signal": ["🔴 Sell" if s["type"] == "SELL" else "🟢 Buy" if s["type"] == "BUY" else "⚪ Hold" for s in signals[1:]],
+        "Price": [f"{s['entry']:.2f}" if s["entry"] else "-" for s in signals[1:]]
     }
-    st.dataframe(pd.DataFrame(signal_history), use_container_width=True, hide_index=True, height=300)
+    st.dataframe(pd.DataFrame(history_data), use_container_width=True, hide_index=True, height=300)
 
-# --- Bottom Technical Placeholder ---
+# --- Bottom Technical Indicators ---
 with chart_container:
     st.markdown("---")
     st.markdown("<h5>📉 Technical Indicators</h5>", unsafe_allow_html=True)
