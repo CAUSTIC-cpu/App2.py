@@ -18,32 +18,12 @@ def update_live_price():
 
 update_live_price()
 
-# --- Generate Dynamic Signal (Simulate Update) ---
-def generate_signal():
-    types = ["BUY", "SELL", "HOLD"]
-    t = random.choice(types)
-    base = round(st.session_state.live_price + random.uniform(-5, 5), 2)
-    return {
-        "time": time.strftime("%H:%M"),
-        "type": t,
-        "entry": base if t != "HOLD" else None,
-        "tp": round(base + random.uniform(5, 12), 2) if t == "BUY" else round(base - random.uniform(5, 12), 2) if t == "SELL" else None,
-        "sl": round(base - random.uniform(4, 8), 2) if t == "BUY" else round(base + random.uniform(4, 8), 2) if t == "SELL" else None,
-        "volume": random.randint(15000, 25000),
-        "max_volume": 25000,
-        "strength": random.randint(60, 90),
-    }
-
-# Store signals
-if "active_signal" not in st.session_state:
-    st.session_state.active_signal = generate_signal()
-
 # --- Layout Structure ---
 header = st.container()
 top_row = st.columns([2, 1])
 middle_row = st.columns(2)
 
-# --- Static Summary ---
+# --- Static Mock Data ---
 @st.cache_data
 def get_static_technical_summary():
     return {
@@ -53,10 +33,20 @@ def get_static_technical_summary():
         "MACD": ["Bearish", "Bearish", "Neutral", "Bullish", "Bullish", "Bullish"]
     }
 
-# Mock historical signals
-signals = [generate_signal() for _ in range(10)]
+signals = [
+    {"time": "14:30", "type": "SELL", "entry": 1975.50, "tp": 1962.00, "sl": 1985.00, "volume": 18250, "max_volume": 25000, "strength": 75},
+    {"time": "14:00", "type": "BUY",  "entry": 1968.20, "tp": 1980.00, "sl": 1960.00, "volume": 20000, "max_volume": 25000, "strength": 68},
+    {"time": "13:30", "type": "HOLD", "entry": None,     "tp": None,    "sl": None,    "volume": 15000, "max_volume": 25000, "strength": 50},
+    {"time": "13:00", "type": "SELL", "entry": 1972.80, "tp": 1960.00, "sl": 1983.00, "volume": 21000, "max_volume": 25000, "strength": 80},
+    {"time": "12:30", "type": "BUY",  "entry": 1965.00, "tp": 1975.00, "sl": 1958.00, "volume": 22000, "max_volume": 25000, "strength": 77},
+    {"time": "12:00", "type": "SELL", "entry": 1980.00, "tp": 1967.00, "sl": 1988.00, "volume": 19500, "max_volume": 25000, "strength": 72},
+    {"time": "11:30", "type": "BUY",  "entry": 1962.00, "tp": 1972.00, "sl": 1955.00, "volume": 24000, "max_volume": 25000, "strength": 82},
+    {"time": "11:00", "type": "SELL", "entry": 1970.00, "tp": 1958.00, "sl": 1978.00, "volume": 18000, "max_volume": 25000, "strength": 70},
+    {"time": "10:30", "type": "HOLD", "entry": None,     "tp": None,    "sl": None,    "volume": 16000, "max_volume": 25000, "strength": 55},
+    {"time": "10:00", "type": "BUY",  "entry": 1955.00, "tp": 1968.00, "sl": 1948.00, "volume": 23000, "max_volume": 25000, "strength": 79},
+]
 
-# --- Header ---
+# --- Header Section ---
 with header:
     st.markdown("---")
     cols = st.columns(4)
@@ -66,7 +56,11 @@ with header:
     with cols[3]: st.markdown("<small><b>24h Change:</b> +1.25%</small>", unsafe_allow_html=True)
     st.markdown("---")
 
-# --- Top Row ---
+# --- Refresh State ---
+if "active_signal" not in st.session_state:
+    st.session_state.active_signal = signals[0]
+
+# --- Top Row: Chart & Active Signal ---
 with top_row[0]:
     st.markdown("<h5>📊 Live Chart (TradingView)</h5>", unsafe_allow_html=True)
     tv_chart = """
@@ -80,29 +74,6 @@ with top_row[0]:
 
 with top_row[1]:
     st.markdown("<h5>🚦 Active Signal</h5>", unsafe_allow_html=True)
-
-    # --- Stylish Refresh Button ---
-    refresh = st.markdown("""
-        <style>
-        div.stButton > button {
-            background-color: #1e88e5;
-            color: white;
-            font-weight: bold;
-            padding: 0.6em 1em;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border: none;
-        }
-        div.stButton > button:hover {
-            background-color: #1669bb;
-            color: #fff;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    if st.button("🔄 Refresh Signal"):
-        st.session_state.active_signal = generate_signal()
-        st.experimental_rerun()
 
     signal = st.session_state.active_signal
     volume_pct = (signal["volume"] / signal["max_volume"]) * 100
@@ -124,7 +95,7 @@ with top_row[1]:
     st.markdown(f"<small><b>ATR Volatility Context:</b> {atr_pct:.1f}%</small>", unsafe_allow_html=True)
     st.progress(atr_pct, text="ATR Confidence")
 
-# --- Middle Row ---
+# --- Middle Row: Technical Summary + History ---
 with middle_row[0]:
     st.markdown("<h5>🧠 Technical Summary</h5>", unsafe_allow_html=True)
     summary_df = pd.DataFrame(get_static_technical_summary())
@@ -132,11 +103,15 @@ with middle_row[0]:
 
 with middle_row[1]:
     st.markdown("<h5>🕒 Signal History</h5>", unsafe_allow_html=True)
+
     pip_moves = []
     for i in range(1, len(signals)-1):
-        e1 = signals[i]["entry"]
-        e2 = signals[i+1]["entry"]
-        pip_moves.append(abs(e1 - e2)*10 if e1 and e2 else "-")
+        entry = signals[i]["entry"]
+        next_entry = signals[i+1]["entry"]
+        if entry and next_entry:
+            pip_moves.append(abs(entry - next_entry) * 10)
+        else:
+            pip_moves.append("-")
     pip_moves.append("-")
 
     history = {
@@ -149,3 +124,12 @@ with middle_row[1]:
 
 # --- Footer ---
 st.caption("Demo Data • Last Updated: " + time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()))
+
+# --- Refresh Timer (60s) ---
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    update_live_price()
+    st.experimental_rerun()
