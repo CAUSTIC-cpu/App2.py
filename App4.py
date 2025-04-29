@@ -1,6 +1,5 @@
 import pandas as pd
 import streamlit as st
-from datetime import timedelta
 import streamlit.components.v1 as components
 
 # --- Streamlit Config ---
@@ -9,38 +8,19 @@ st.markdown("<h3 style='margin-bottom: 0;'>📈 GOLD (XAU/USD) Fibonacci Signal 
 
 # --- Layout Structure ---
 header = st.container()
-top_row = st.columns([2, 1])  # 2:1 ratio for chart vs metrics
+top_row = st.columns([2, 1])
 middle_row = st.columns(2)
 chart_container = st.container()
 
-# --- Static Data Generation ---
+# --- Static Mock Data ---
 @st.cache_data
-def get_static_data():
-    base_price = 1950.00
-    dates = pd.date_range(end=pd.Timestamp.now(), periods=100, freq="H")
-    return pd.DataFrame({
-        "Time": dates,
-        "Open": [base_price + i*0.5 for i in range(100)],
-        "High": [base_price + i*0.5 + 2.5 for i in range(100)],
-        "Low": [base_price + i*0.5 - 2.0 for i in range(100)],
-        "Close": [base_price + i*0.5 + 0.3 for i in range(100)],
-        "Volume": [100000 + i*500 for i in range(100)]
-    }).sort_values("Time")
-
-# --- Mock Data Generation ---
-df = get_static_data()
-high = df["High"].max()
-low = df["Low"].min()
-
-levels = {
-    "0.0%": high,
-    "23.6%": high - (high - low) * 0.236,
-    "38.2%": high - (high - low) * 0.382,
-    "50.0%": high - (high - low) * 0.5,
-    "61.8%": high - (high - low) * 0.618,
-    "78.6%": high - (high - low) * 0.786,
-    "100.0%": low,
-}
+def get_static_technical_summary():
+    return {
+        "Timeframe": ["1 min", "5 min", "15 min", "1 hour", "4 hour", "1 day"],
+        "Summary": ["Sell", "Sell", "Neutral", "Buy", "Strong Buy", "Strong Buy"],
+        "RSI": [45.2, 48.0, 50.1, 55.2, 61.5, 64.0],
+        "MACD": ["Bearish", "Bearish", "Neutral", "Bullish", "Bullish", "Bullish"]
+    }
 
 # --- Header Section ---
 with header:
@@ -52,21 +32,19 @@ with header:
     with cols[3]: st.markdown("<small><b>24h Change:</b> +1.25%</small>", unsafe_allow_html=True)
     st.markdown("---")
 
-# --- Top Row: Chart + Signal ---
-with top_row[0]:  # Chart Column
-    st.markdown("<h5>📊 Price Chart</h5>", unsafe_allow_html=True)
-    
-    # Embed TradingView chart
-    tradingview_embed = """
+# --- Top Row: TradingView Chart & Signal Box ---
+with top_row[0]:  # Chart
+    st.markdown("<h5>📊 Live Chart (TradingView)</h5>", unsafe_allow_html=True)
+    tv_chart = """
     <div class="tradingview-widget-container" style="height:420px;">
-      <iframe src="https://s.tradingview.com/embed-widget/mini-symbol-overview/?symbol=OANDA:XAUUSD&width=100%&height=400&locale=en&dateRange=1D&colorTheme=dark&trendLineColor=rgba(41, 98, 255, 1)&underLineColor=rgba(41, 98, 255, 0.3)&isTransparent=true&autosize=true&largeChartUrl="
-        style="width:100%;height:400px;" frameborder="0" allowtransparency="true" scrolling="no">
+      <iframe src="https://s.tradingview.com/embed-widget/advanced-chart/?symbol=OANDA:XAUUSD&theme=dark&style=1&locale=en&toolbar_bg=1e1e1e&studies=[]&hide_side_toolbar=false&withdateranges=true&hideideas=true&interval=60&allow_symbol_change=true"
+        style="width:100%;height:420px;" frameborder="0" allowtransparency="true" scrolling="no">
       </iframe>
     </div>
     """
-    components.html(tradingview_embed, height=420)
+    components.html(tv_chart, height=420)
 
-with top_row[1]:  # Signal Column
+with top_row[1]:  # Active Signal
     st.markdown("<h5>🚦 Active Signal</h5>", unsafe_allow_html=True)
     st.markdown("#### 🔴 SELL Recommendation")
     st.markdown("<small><b>Entry Price:</b> 1975.50</small>", unsafe_allow_html=True)
@@ -74,34 +52,26 @@ with top_row[1]:  # Signal Column
     st.markdown("<small><b>Stop Loss:</b> 1985.00</small>", unsafe_allow_html=True)
     st.progress(75, text="Signal Strength")
 
-# --- Middle Row: Fibonacci + History ---
+# --- Middle Row: Technical Summary (Mocked) + Placeholder for Levels/History ---
 with middle_row[0]:
-    st.markdown("<h5>📐 Fibonacci Levels</h5>", unsafe_allow_html=True)
-    fib_df = pd.DataFrame(levels.items(), columns=["Level", "Price"])
-    st.dataframe(
-        fib_df.set_index("Level").style.format({"Price": "{:.2f}"}),
-        use_container_width=True,
-        height=300
-    )
+    st.markdown("<h5>🧠 Technical Summary</h5>", unsafe_allow_html=True)
+    tech_summary = get_static_technical_summary()
+    summary_df = pd.DataFrame(tech_summary)
+    st.dataframe(summary_df, use_container_width=True, height=300)
 
 with middle_row[1]:
     st.markdown("<h5>🕒 Signal History</h5>", unsafe_allow_html=True)
-    history_data = {
+    signal_history = {
         "Time": ["14:30", "13:45", "12:15", "11:00"],
         "Signal": ["🔴 Sell", "🟢 Buy", "⚪ Hold", "🔴 Sell"],
         "Price": ["1975.50", "1968.20", "-", "1972.80"]
     }
-    st.dataframe(
-        pd.DataFrame(history_data),
-        use_container_width=True,
-        hide_index=True,
-        height=300
-    )
+    st.dataframe(pd.DataFrame(signal_history), use_container_width=True, hide_index=True, height=300)
 
-# --- Bottom Chart Container ---
+# --- Bottom Technical Placeholder ---
 with chart_container:
     st.markdown("---")
-    st.markdown("<h5>📉 Technical Analysis</h5>", unsafe_allow_html=True)
+    st.markdown("<h5>📉 Technical Indicators</h5>", unsafe_allow_html=True)
     cols = st.columns(3)
     with cols[0]: st.image("https://via.placeholder.com/400x200.png?text=RSI+Indicator")
     with cols[1]: st.image("https://via.placeholder.com/400x200.png?text=MACD+Indicator")
