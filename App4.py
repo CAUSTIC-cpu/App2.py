@@ -1,5 +1,6 @@
 import pandas as pd
-import streamlit as st  # Changed from pandas to streamlit
+import streamlit as st
+from datetime import timedelta
 
 # --- Streamlit Config ---
 st.set_page_config(page_title="XAUUSD Fibonacci Demo", layout="wide")
@@ -8,7 +9,6 @@ st.title("GOLD (XAU/USD) Fibonacci Signal Scanner (Demo)")
 # --- Static Data Generation ---
 @st.cache_data
 def get_static_data():
-    # Generate dummy data for 100 periods
     base_price = 1950.00
     dates = pd.date_range(end=pd.Timestamp.now(), periods=100, freq="H")
     
@@ -24,8 +24,8 @@ def get_static_data():
 df = get_static_data()
 
 # --- Fibonacci Calculation ---
-high = df["High"].max()  # Will be 1950 + 99*0.5 + 2.5 = 2001.0
-low = df["Low"].min()    # Will be 1950 - 2.0 = 1948.0
+high = df["High"].max()
+low = df["Low"].min()
 
 levels = {
     "0.0%": high,
@@ -37,28 +37,49 @@ levels = {
     "100.0%": low,
 }
 
-# --- Display Fibonacci Levels ---
-st.subheader("Fibonacci Levels (Demo Data)")
-fib_df = pd.DataFrame(levels.items(), columns=["Level", "Price"])
-st.dataframe(fib_df.set_index("Level").style.format({"Price": "{:.2f}"}))
+# --- NEW: Mock Signal History Data ---
+def generate_mock_history():
+    base_time = df["Time"].iloc[-1]
+    return pd.DataFrame([
+        {"Time": base_time - timedelta(hours=4), "Price": 1968.20, "Type": "BUY"},
+        {"Time": base_time - timedelta(hours=3), "Price": 1972.80, "Type": "SELL"},
+        {"Time": base_time - timedelta(hours=2), "Price": 1975.50, "Type": "SELL"},
+        {"Time": base_time - timedelta(hours=1), "Price": 1971.30, "Type": "BUY"},
+        {"Time": base_time, "Price": 1975.50, "Type": "SELL"}
+    ])
 
-# --- Static Signal Values ---
-latest_price = 1975.50  # Between 38.2% and 61.8% levels
-current_volume = 145000
-timestamp = df["Time"].iloc[-1].strftime("%Y-%m-%d %H:%M:%S")
+history_df = generate_mock_history()
 
-# --- Fixed Signal for Testing ---
-st.subheader("Demo Signal")
-st.metric(label="Current Price", value=f"${latest_price:.2f}")
-st.markdown("**Signal:** 🔴 **SELL** @ 1975.50")
-st.markdown("**Risk/Reward:** Risk/Reward: 2.2x (60%)")
+# --- Display Sections ---
+col1, col2 = st.columns(2)
 
-# --- Static Signal Log ---
+with col1:
+    st.subheader("Fibonacci Levels (Demo Data)")
+    fib_df = pd.DataFrame(levels.items(), columns=["Level", "Price"])
+    st.dataframe(fib_df.set_index("Level").style.format({"Price": "{:.2f}"}))
+    
+    st.subheader("Demo Signal")
+    st.metric(label="Current Price", value="$1975.50")
+    st.markdown("**Signal:** 🔴 **SELL** @ 1975.50")
+    st.markdown("**Risk/Reward:** 2.2x (60%)")
+
+with col2:
+    st.subheader("Signal History")
+    st.dataframe(
+        history_df.style.format({
+            "Price": "${:.2f}",
+            "Time": lambda x: x.strftime("%Y-%m-%d %H:%M")
+        }).apply(lambda row: [
+            f"color: {'#4CAF50' if row.Type=='BUY' else '#FF5252'}"
+            for _ in row], axis=1),
+        height=400
+    )
+
+# --- Existing Signal Log ---
 st.subheader("Signal Log (Demo)")
 demo_log = [
     {"time": "2024-02-20 15:00:00", "signal": "🔴 SELL @ 1972.80"},
     {"time": "2024-02-20 14:00:00", "signal": "🟢 BUY @ 1968.20"},
-    {"time": "2024-02-20 13:00:00", "signal": "⚪ No strong signal"},
 ]
 
 for s in demo_log:
@@ -66,9 +87,5 @@ for s in demo_log:
 
 # --- Chart Placeholder ---
 st.subheader("Chart Placeholder")
-st.image("https://via.placeholder.com/800x400.png?text=TradingView+Chart+Area", 
+st.image("https://via.placeholder.com/800x400.png?text=TradingView+Chart+Area",
          use_column_width=True)
-
-# --- Disabled Auto Refresh ---
-st.subheader("Auto Refresh (Disabled in Demo)")
-st.write("Refresh functionality disabled for static demo")
