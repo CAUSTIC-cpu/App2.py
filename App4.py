@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 from datetime import timedelta
+import streamlit.components.v1 as components
 
 # --- Streamlit Config ---
 st.set_page_config(page_title="XAUUSD Fibonacci Demo", layout="wide")
@@ -54,8 +55,16 @@ with header:
 # --- Top Row: Chart + Signal ---
 with top_row[0]:  # Chart Column
     st.markdown("<h5>📊 Price Chart</h5>", unsafe_allow_html=True)
-    st.image("https://via.placeholder.com/1200x400.png?text=Interactive+Chart+Area", 
-             use_container_width=True)
+    
+    # Embed TradingView chart
+    tradingview_embed = """
+    <div class="tradingview-widget-container" style="height:420px;">
+      <iframe src="https://s.tradingview.com/embed-widget/mini-symbol-overview/?symbol=OANDA:XAUUSD&width=100%&height=400&locale=en&dateRange=1D&colorTheme=dark&trendLineColor=rgba(41, 98, 255, 1)&underLineColor=rgba(41, 98, 255, 0.3)&isTransparent=true&autosize=true&largeChartUrl="
+        style="width:100%;height:400px;" frameborder="0" allowtransparency="true" scrolling="no">
+      </iframe>
+    </div>
+    """
+    components.html(tradingview_embed, height=420)
 
 with top_row[1]:  # Signal Column
     st.markdown("<h5>🚦 Active Signal</h5>", unsafe_allow_html=True)
