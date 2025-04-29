@@ -4,14 +4,19 @@ from datetime import timedelta
 
 # --- Streamlit Config ---
 st.set_page_config(page_title="XAUUSD Fibonacci Demo", layout="wide")
-st.title("GOLD (XAU/USD) Fibonacci Signal Scanner (Demo)")
+st.title("📈 GOLD (XAU/USD) Fibonacci Signal Scanner")
+
+# --- Layout Structure ---
+header = st.container()
+top_row = st.columns([2, 1])  # 2:1 ratio for chart vs metrics
+middle_row = st.columns(2)
+chart_container = st.container()
 
 # --- Static Data Generation ---
 @st.cache_data
 def get_static_data():
     base_price = 1950.00
     dates = pd.date_range(end=pd.Timestamp.now(), periods=100, freq="H")
-    
     return pd.DataFrame({
         "Time": dates,
         "Open": [base_price + i*0.5 for i in range(100)],
@@ -21,9 +26,8 @@ def get_static_data():
         "Volume": [100000 + i*500 for i in range(100)]
     }).sort_values("Time")
 
+# --- Mock Data Generation ---
 df = get_static_data()
-
-# --- Fibonacci Calculation ---
 high = df["High"].max()
 low = df["Low"].min()
 
@@ -37,62 +41,63 @@ levels = {
     "100.0%": low,
 }
 
-# --- Mock History with Icons ---
-def generate_mock_history():
-    base_time = df["Time"].iloc[-1]
-    return pd.DataFrame([
-        {"Time": base_time - timedelta(hours=4), "Price": 1968.20, "Signal": "🟢 BUY"},
-        {"Time": base_time - timedelta(hours=3), "Price": 1972.80, "Signal": "🔴 SELL"},
-        {"Time": base_time - timedelta(hours=2), "Price": 1975.50, "Signal": "🔴 SELL"},
-        {"Time": base_time - timedelta(hours=1), "Price": 1971.30, "Signal": "🟢 BUY"},
-        {"Time": base_time, "Price": 1975.50, "Signal": "🔴 SELL"}
-    ])
+# --- Header Section ---
+with header:
+    st.markdown("---")
+    cols = st.columns(4)
+    with cols[0]: st.metric("Current Price", "$1975.50")
+    with cols[1]: st.metric("Today's High", "$2001.00")
+    with cols[2]: st.metric("Today's Low", "$1948.00")
+    with cols[3]: st.metric("24h Change", "+1.25%", delta_color="off")
+    st.markdown("---")
 
-history_df = generate_mock_history()
+# --- Top Row: Chart + Signal ---
+with top_row[0]:  # Chart Column
+    st.subheader("📊 Price Chart")
+    st.image("https://via.placeholder.com/1200x400.png?text=Interactive+Chart+Area", 
+             use_container_width=True)
 
-# --- Display Sections ---
-col1, col2 = st.columns(2)
+with top_row[1]:  # Signal Column
+    st.subheader("🚦 Active Signal")
+    st.markdown("### 🔴 SELL Recommendation")
+    st.metric("Entry Price", "1975.50")
+    st.metric("Take Profit", "1962.00")
+    st.metric("Stop Loss", "1985.00")
+    st.progress(75, text="Signal Strength")
 
-with col1:
-    st.subheader("Fibonacci Levels (Demo Data)")
+# --- Middle Row: Fibonacci + History ---
+with middle_row[0]:
+    st.subheader("📐 Fibonacci Levels")
     fib_df = pd.DataFrame(levels.items(), columns=["Level", "Price"])
     st.dataframe(
         fib_df.set_index("Level").style.format({"Price": "{:.2f}"}),
-        use_container_width=True  # Added here
+        use_container_width=True,
+        height=300
     )
-    
-    st.subheader("Demo Signal")
-    st.metric(label="Current Price", value="$1975.50")
-    st.markdown("**Signal:** 🔴 **SELL** @ 1975.50")
-    st.markdown("**Risk/Reward:** 2.2x (60%)")
 
-with col2:
-    st.subheader("Signal History")
+with middle_row[1]:
+    st.subheader("🕒 Signal History")
+    history_data = {
+        "Time": ["14:30", "13:45", "12:15", "11:00"],
+        "Signal": ["🔴 Sell", "🟢 Buy", "⚪ Hold", "🔴 Sell"],
+        "Price": ["1975.50", "1968.20", "-", "1972.80"]
+    }
     st.dataframe(
-        history_df.style.format({
-            "Price": "${:.2f}",
-            "Time": lambda x: x.strftime("%Y-%m-%d %H:%M")
-        }).apply(lambda row: [
-            f"color: {'#4CAF50' if 'BUY' in row.Signal else '#FF5252'}"
-            for _ in row], axis=1),
-        height=400,
-        column_order=["Time", "Signal", "Price"],
-        use_container_width=True  # Added here
+        pd.DataFrame(history_data),
+        use_container_width=True,
+        hide_index=True,
+        height=300
     )
 
-# --- Signal Log ---
-st.subheader("Signal Log (Demo)")
-demo_log = [
-    {"time": "2024-02-20 15:00:00", "signal": "🔴 SELL @ 1972.80"},
-    {"time": "2024-02-20 14:00:00", "signal": "🟢 BUY @ 1968.20"},
-]
+# --- Bottom Chart Container ---
+with chart_container:
+    st.markdown("---")
+    st.subheader("📉 Technical Analysis")
+    cols = st.columns(3)
+    with cols[0]: st.image("https://via.placeholder.com/400x200.png?text=RSI+Indicator")
+    with cols[1]: st.image("https://via.placeholder.com/400x200.png?text=MACD+Indicator")
+    with cols[2]: st.image("https://via.placeholder.com/400x200.png?text=Volume+Chart")
+    st.markdown("---")
 
-for s in demo_log:
-    st.markdown(f"{s['signal']} | 🕒 *{s['time']}*")
-
-# --- Chart Placeholder ---
-st.subheader("Chart Placeholder")
-st.image(
-    "https://via.placeholder.com/800x400.png?text=TradingView+Chart+Area",
-    use_container_width=True  # Updated from use_column_width
-)
+# --- Footer ---
+st.caption("Demo Data • Updated: 2024-02-21 15:00 UTC")
