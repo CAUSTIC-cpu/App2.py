@@ -1,10 +1,23 @@
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
+import time
+import random
 
 # --- Streamlit Config ---
 st.set_page_config(page_title="XAUUSD Fibonacci Demo", layout="wide")
-st.markdown("<h3 style='margin-bottom: 0;'>📈 GOLD (XAU/USD) Fibonacci Signal Scanner by master</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='margin-bottom: 0;'>📈 GOLD (XAU/USD) Fibonacci Signal Scanner</h3>", unsafe_allow_html=True)
+
+# --- Simulate Live Price ---
+if "live_price" not in st.session_state:
+    st.session_state.live_price = 1975.50
+
+def update_live_price():
+    # Random fluctuation simulation
+    st.session_state.live_price += random.uniform(-0.5, 0.5)
+    st.session_state.live_price = round(st.session_state.live_price, 2)
+
+update_live_price()
 
 # --- Layout Structure ---
 header = st.container()
@@ -22,7 +35,6 @@ def get_static_technical_summary():
         "MACD": ["Bearish", "Bearish", "Neutral", "Bullish", "Bullish", "Bullish"]
     }
 
-# --- Mocked Signals (10 entries) ---
 signals = [
     {"time": "14:30", "type": "SELL", "entry": 1975.50, "tp": 1962.00, "sl": 1985.00, "volume": 18250, "max_volume": 25000, "strength": 75},
     {"time": "13:45", "type": "BUY",  "entry": 1968.20, "tp": 1980.00, "sl": 1960.00, "volume": 20000, "max_volume": 25000, "strength": 68},
@@ -40,7 +52,7 @@ signals = [
 with header:
     st.markdown("---")
     cols = st.columns(4)
-    with cols[0]: st.markdown("<small><b>Current Price:</b> $1975.50</small>", unsafe_allow_html=True)
+    with cols[0]: st.markdown(f"<small><b>Current Price:</b> ${st.session_state.live_price:.2f}</small>", unsafe_allow_html=True)
     with cols[1]: st.markdown("<small><b>Today's High:</b> $2001.00</small>", unsafe_allow_html=True)
     with cols[2]: st.markdown("<small><b>Today's Low:</b> $1948.00</small>", unsafe_allow_html=True)
     with cols[3]: st.markdown("<small><b>24h Change:</b> +1.25%</small>", unsafe_allow_html=True)
@@ -58,13 +70,11 @@ with top_row[0]:
     """
     components.html(tv_chart, height=420)
 
-with top_row[1]:  # Active Signal
+with top_row[1]:
     st.markdown("<h5>🚦 Active Signal</h5>", unsafe_allow_html=True)
-
     signal = signals[0]
     volume_pct = (signal["volume"] / signal["max_volume"]) * 100
     icon = "🔴" if signal["type"] == "SELL" else "🟢" if signal["type"] == "BUY" else "⚪"
-
     st.markdown(f"#### {icon} {signal['type']} Recommendation")
     st.markdown(f"<small><b>Entry Price:</b> {signal['entry']}</small>", unsafe_allow_html=True)
     st.markdown(f"<small><b>Take Profit:</b> {signal['tp']}</small>", unsafe_allow_html=True)
@@ -75,20 +85,19 @@ with top_row[1]:  # Active Signal
 # --- Middle Row: Technical Summary + History ---
 with middle_row[0]:
     st.markdown("<h5>🧠 Technical Summary</h5>", unsafe_allow_html=True)
-    tech_summary = get_static_technical_summary()
-    summary_df = pd.DataFrame(tech_summary)
+    summary_df = pd.DataFrame(get_static_technical_summary())
     st.dataframe(summary_df, use_container_width=True, height=300)
 
 with middle_row[1]:
     st.markdown("<h5>🕒 Signal History</h5>", unsafe_allow_html=True)
-    history_data = {
+    history = {
         "Time": [s["time"] for s in signals[1:]],
         "Signal": ["🔴 Sell" if s["type"] == "SELL" else "🟢 Buy" if s["type"] == "BUY" else "⚪ Hold" for s in signals[1:]],
         "Price": [f"{s['entry']:.2f}" if s["entry"] else "-" for s in signals[1:]]
     }
-    st.dataframe(pd.DataFrame(history_data), use_container_width=True, hide_index=True, height=300)
+    st.dataframe(pd.DataFrame(history), use_container_width=True, hide_index=True, height=300)
 
-# --- Bottom Technical Indicators ---
+# --- Chart Indicators Placeholder ---
 with chart_container:
     st.markdown("---")
     st.markdown("<h5>📉 Technical Indicators</h5>", unsafe_allow_html=True)
@@ -99,4 +108,12 @@ with chart_container:
     st.markdown("---")
 
 # --- Footer ---
-st.caption("Demo Data • Updated: 2024-02-21 15:00 UTC")
+st.caption("Demo Data • Last Updated: " + time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()))
+
+# --- Refresh Logic (every 60s) ---
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    st.experimental_rerun()
