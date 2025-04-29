@@ -1,8 +1,8 @@
-import streamlit as st
+requirements.txt(import streamlit as st
 import pandas as pd
 import yfinance as yf
 import datetime
-import time
+import time)
 
 st.set_page_config(page_title="Gold Smart Fib Signals", layout="wide")
 
@@ -90,6 +90,3 @@ for i in range(countdown, 0, -1):
     placeholder.markdown(f"⏳ Refreshing in **{i} seconds**...")
     time.sleep(1)
 st.rerun()
-requirements.txt ( streamlit
-pandas
-yfinance)
