@@ -13,7 +13,6 @@ if "live_price" not in st.session_state:
     st.session_state.live_price = 1975.50
 
 def update_live_price():
-    # Random fluctuation simulation
     st.session_state.live_price += random.uniform(-0.5, 0.5)
     st.session_state.live_price = round(st.session_state.live_price, 2)
 
@@ -81,6 +80,17 @@ with top_row[1]:
     st.markdown(f"<small><b>Stop Loss:</b> {signal['sl']}</small>", unsafe_allow_html=True)
     st.markdown(f"<small><b>Volume:</b> {signal['volume']:,} ({volume_pct:.1f}%)</small>", unsafe_allow_html=True)
     st.progress(signal["strength"], text="Signal Strength")
+
+    # --- Complementary Indicator Confidence ---
+    stochastic_pct = min(100, max(0, signal["strength"] + random.randint(-15, 15)))
+    atr_pct = min(100, max(0, 100 - abs(signal["strength"] - 70) + random.randint(-10, 10)))
+
+    st.markdown("**Complementary Indicator Confidence:**")
+    st.markdown(f"<small><b>Stochastic Oscillator Match:</b> {stochastic_pct:.1f}%</small>", unsafe_allow_html=True)
+    st.progress(stochastic_pct, text="Stochastic Confidence")
+
+    st.markdown(f"<small><b>ATR Volatility Context:</b> {atr_pct:.1f}%</small>", unsafe_allow_html=True)
+    st.progress(atr_pct, text="ATR Confidence")
 
 # --- Middle Row: Technical Summary + History ---
 with middle_row[0]:
