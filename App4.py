@@ -22,7 +22,6 @@ update_live_price()
 header = st.container()
 top_row = st.columns([2, 1])
 middle_row = st.columns(2)
-chart_container = st.container()
 
 # --- Static Mock Data ---
 @st.cache_data
@@ -106,15 +105,6 @@ with middle_row[1]:
         "Price": [f"{s['entry']:.2f}" if s["entry"] else "-" for s in signals[1:]]
     }
     st.dataframe(pd.DataFrame(history), use_container_width=True, hide_index=True, height=300)
-
-# --- Chart Indicators Placeholder ---
-with chart_container:
-    st.markdown("---")
-    st.markdown("<h5>📉 Technical Indicators</h5>", unsafe_allow_html=True)
-    cols = st.columns(3)
-    import matplotlib.pyplot as plt
-import numpy as np
-
 
 # --- Footer ---
 st.caption("Demo Data • Last Updated: " + time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()))
