@@ -99,29 +99,28 @@ with top_row[1]:
 with middle_row[0]:
     st.markdown("<h5>🧠 Technical Summary</h5>", unsafe_allow_html=True)
     summary_df = pd.DataFrame(get_static_technical_summary())
-    st.dataframe(summary_df, use_container_width=True)
+    st.dataframe(summary_df, use_container_width=True, height=300)
 
 with middle_row[1]:
     st.markdown("<h5>🕒 Signal History</h5>", unsafe_allow_html=True)
 
     pip_moves = []
-    for i in range(len(signals) - 1):
-        curr_entry = signals[i]["entry"]
-        next_entry = signals[i + 1]["entry"]
-        if curr_entry is not None and next_entry is not None:
-            pip_moves.append(round(abs(curr_entry - next_entry) * 10, 1))
+    for i in range(1, len(signals)-1):
+        entry = signals[i]["entry"]
+        next_entry = signals[i+1]["entry"]
+        if entry and next_entry:
+            pip_moves.append(abs(entry - next_entry) * 10)
         else:
             pip_moves.append("-")
-
-    pip_moves.append("-")  # For the last signal with no next entry
+    pip_moves.append("-")
 
     history = {
-        "Time": [s["time"] for s in signals],
-        "Signal": ["🔴 Sell" if s["type"] == "SELL" else "🟢 Buy" if s["type"] == "BUY" else "⚪ Hold" for s in signals],
-        "Price": [f"{s['entry']:.2f}" if s["entry"] is not None else "-" for s in signals],
+        "Time": [s["time"] for s in signals[1:]],
+        "Signal": ["🔴 Sell" if s["type"] == "SELL" else "🟢 Buy" if s["type"] == "BUY" else "⚪ Hold" for s in signals[1:]],
+        "Price": [f"{s['entry']:.2f}" if s["entry"] else "-" for s in signals[1:]],
         "Pips to Reversal": pip_moves
     }
-    st.dataframe(pd.DataFrame(history), use_container_width=True)
+    st.dataframe(pd.DataFrame(history), use_container_width=True, hide_index=True, height=300)
 
 # --- Footer ---
 st.caption("Demo Data • Last Updated: " + time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()))
@@ -133,4 +132,4 @@ if "last_refresh" not in st.session_state:
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     update_live_price()
-    st.experimental_rerun()
+    st.rerun()
