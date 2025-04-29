@@ -1,3 +1,12 @@
+import streamlit as st
+from PIL import Image
+
+# Assuming page config and other imports are here
+
+# R.R.R Icon Redirect
+st.sidebar.markdown("### Navigation")
+if st.sidebar.button("🧮 R.R.R (Risk/Reward)"):
+    st.switch_page("rrr.py")
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
