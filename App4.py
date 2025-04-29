@@ -1,91 +1,74 @@
-requirements.txt(import streamlit as st
 import pandas as pd
-import datetime
-import time)
+import streamlit as st  # Changed from pandas to streamlit
 
-st.set_page_config(page_title="Gold Smart Fib Signals", layout="wide")
+# --- Streamlit Config ---
+st.set_page_config(page_title="XAUUSD Fibonacci Demo", layout="wide")
+st.title("GOLD (XAU/USD) Fibonacci Signal Scanner (Demo)")
 
-# --- Title ---
-st.title("GOLD (XAU/USD) Fibonacci Signal Scanner")
-st.markdown("Live analysis using Fibonacci, volume, and signal logging with risk/reward logic.")
+# --- Static Data Generation ---
+@st.cache_data
+def get_static_data():
+    # Generate dummy data for 100 periods
+    base_price = 1950.00
+    dates = pd.date_range(end=pd.Timestamp.now(), periods=100, freq="H")
+    
+    return pd.DataFrame({
+        "Time": dates,
+        "Open": [base_price + i*0.5 for i in range(100)],
+        "High": [base_price + i*0.5 + 2.5 for i in range(100)],
+        "Low": [base_price + i*0.5 - 2.0 for i in range(100)],
+        "Close": [base_price + i*0.5 + 0.3 for i in range(100)],
+        "Volume": [100000 + i*500 for i in range(100)]
+    }).sort_values("Time")
 
-# --- Live price from Yahoo Finance ---
-data = yf.download("XAUUSD=X", period="7d", interval="1h")
-if data.empty:
-    st.error("Failed to fetch XAU/USD data.")
-    st.stop()
+df = get_static_data()
 
-latest_price = data["Close"][-1]
-high = data["High"].max()
-low = data["Low"].min()
+# --- Fibonacci Calculation ---
+high = df["High"].max()  # Will be 1950 + 99*0.5 + 2.5 = 2001.0
+low = df["Low"].min()    # Will be 1950 - 2.0 = 1948.0
 
-# --- Fibonacci Levels Calculation ---
-fib_levels = {
+levels = {
     "0.0%": high,
     "23.6%": high - (high - low) * 0.236,
     "38.2%": high - (high - low) * 0.382,
     "50.0%": high - (high - low) * 0.5,
     "61.8%": high - (high - low) * 0.618,
     "78.6%": high - (high - low) * 0.786,
-    "100.0%": low
+    "100.0%": low,
 }
-fib_df = pd.DataFrame(fib_levels.items(), columns=["Level", "Price"])
-st.subheader("Fibonacci Levels (1H Range)")
+
+# --- Display Fibonacci Levels ---
+st.subheader("Fibonacci Levels (Demo Data)")
+fib_df = pd.DataFrame(levels.items(), columns=["Level", "Price"])
 st.dataframe(fib_df.set_index("Level").style.format({"Price": "{:.2f}"}))
 
-# --- Mock volume logic (can integrate real volume source later) ---
-volume_today = 110000
-average_volume = 100000
+# --- Static Signal Values ---
+latest_price = 1975.50  # Between 38.2% and 61.8% levels
+current_volume = 145000
+timestamp = df["Time"].iloc[-1].strftime("%Y-%m-%d %H:%M:%S")
 
-# --- Signal Detection ---
-signal = None
-risk_reward = None
-timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-if latest_price <= fib_levels["61.8%"] and volume_today > average_volume:
-    signal = f"🟢 **BUY** @ {latest_price:.2f}"
-    risk_reward = "Risk/Reward: 3.2x (78%)"
-elif latest_price >= fib_levels["38.2%"] and volume_today > average_volume:
-    signal = f"🔴 **SELL** @ {latest_price:.2f}"
-    risk_reward = "Risk/Reward: 2.4x (64%)"
-else:
-    signal = "⚪ No strong signal"
-    risk_reward = "--"
-
-st.subheader("Live Signal")
+# --- Fixed Signal for Testing ---
+st.subheader("Demo Signal")
 st.metric(label="Current Price", value=f"${latest_price:.2f}")
-st.markdown(f"**Signal:** {signal}")
-st.markdown(f"**{risk_reward}**")
+st.markdown("**Signal:** 🔴 **SELL** @ 1975.50")
+st.markdown("**Risk/Reward:** Risk/Reward: 2.2x (60%)")
 
-# --- Signal History Logging (Store latest 5 signals in session state) ---
-if "signal_log" not in st.session_state:
-    st.session_state.signal_log = []
+# --- Static Signal Log ---
+st.subheader("Signal Log (Demo)")
+demo_log = [
+    {"time": "2024-02-20 15:00:00", "signal": "🔴 SELL @ 1972.80"},
+    {"time": "2024-02-20 14:00:00", "signal": "🟢 BUY @ 1968.20"},
+    {"time": "2024-02-20 13:00:00", "signal": "⚪ No strong signal"},
+]
 
-if "No strong signal" not in signal:
-    st.session_state.signal_log.insert(0, {
-        "time": timestamp,
-        "signal": signal
-    })
-
-st.session_state.signal_log = st.session_state.signal_log[:5]
-
-# --- Signal Log Display ---
-st.subheader("Signal Log (Latest 5)")
-for s in st.session_state.signal_log:
+for s in demo_log:
     st.markdown(f"{s['signal']} | 🕒 *{s['time']}*")
 
-# --- Live TradingView Chart ---
-st.subheader("Live XAU/USD Chart")
-chart = """
-<iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_f7f54&symbol=OANDA:XAUUSD&interval=60&hidesidetoolbar=1&theme=dark&style=1&timezone=Etc/UTC&withdateranges=1&hideideas=1&hidelegend=1&autosize=true" width="100%" height="500" frameborder="0" allowtransparency="true" scrolling="no"></iframe>
-"""
-st.components.v1.html(chart, height=500)
+# --- Chart Placeholder ---
+st.subheader("Chart Placeholder")
+st.image("https://via.placeholder.com/800x400.png?text=TradingView+Chart+Area", 
+         use_column_width=True)
 
-# --- Auto Refresh Countdown ---
-st.subheader("Auto Refresh")
-countdown = 60
-placeholder = st.empty()
-for i in range(countdown, 0, -1):
-    placeholder.markdown(f"⏳ Refreshing in **{i} seconds**...")
-    time.sleep(1)
-st.rerun()
+# --- Disabled Auto Refresh ---
+st.subheader("Auto Refresh (Disabled in Demo)")
+st.write("Refresh functionality disabled for static demo")
