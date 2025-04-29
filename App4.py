@@ -74,26 +74,33 @@ with top_row[0]:
 
 with top_row[1]:
     st.markdown("<h5>🚦 Active Signal</h5>", unsafe_allow_html=True)
-
     signal = st.session_state.active_signal
-    volume_pct = (signal["volume"] / signal["max_volume"]) * 100
-    icon = "🔴" if signal["type"] == "SELL" else "🟢" if signal["type"] == "BUY" else "⚪"
-    st.markdown(f"#### {icon} {signal['type']} Recommendation")
-    st.markdown(f"<small><b>Entry Price:</b> {signal['entry']}</small>", unsafe_allow_html=True)
-    st.markdown(f"<small><b>Take Profit:</b> {signal['tp']}</small>", unsafe_allow_html=True)
-    st.markdown(f"<small><b>Stop Loss:</b> {signal['sl']}</small>", unsafe_allow_html=True)
-    st.markdown(f"<small><b>Volume:</b> {signal['volume']:,} ({volume_pct:.1f}%)</small>", unsafe_allow_html=True)
-    st.progress(signal["strength"], text="Signal Strength")
 
-    stochastic_pct = min(100, max(0, signal["strength"] + random.randint(-15, 15)))
-    atr_pct = min(100, max(0, 100 - abs(signal["strength"] - 70) + random.randint(-10, 10)))
+    try:
+        volume_pct = (signal["volume"] / signal["max_volume"]) * 100
+        strength = signal.get("strength", 0)
+        icon = "🔴" if signal["type"] == "SELL" else "🟢" if signal["type"] == "BUY" else "⚪"
 
-    st.markdown("**Complementary Indicator Confidence:**")
-    st.markdown(f"<small><b>Stochastic Oscillator Match:</b> {stochastic_pct:.1f}%</small>", unsafe_allow_html=True)
-    st.progress(stochastic_pct, text="Stochastic Confidence")
+        st.markdown(f"#### {icon} {signal['type']} Recommendation")
+        st.markdown(f"<small><b>Entry Price:</b> {signal['entry'] if signal['entry'] else '-'}</small>", unsafe_allow_html=True)
+        st.markdown(f"<small><b>Take Profit:</b> {signal['tp'] if signal['tp'] else '-'}</small>", unsafe_allow_html=True)
+        st.markdown(f"<small><b>Stop Loss:</b> {signal['sl'] if signal['sl'] else '-'}</small>", unsafe_allow_html=True)
+        st.markdown(f"<small><b>Volume:</b> {signal['volume']:,} ({volume_pct:.1f}%)</small>", unsafe_allow_html=True)
+        st.progress(strength, text="Signal Strength")
 
-    st.markdown(f"<small><b>ATR Volatility Context:</b> {atr_pct:.1f}%</small>", unsafe_allow_html=True)
-    st.progress(atr_pct, text="ATR Confidence")
+        # Complementary Indicator Confidence
+        st.markdown("**Complementary Indicator Confidence:**")
+        stochastic_pct = min(100, max(0, strength + random.randint(-15, 15)))
+        atr_pct = min(100, max(0, 100 - abs(strength - 70) + random.randint(-10, 10)))
+
+        st.markdown(f"<small><b>Stochastic Oscillator Match:</b> {stochastic_pct:.1f}%</small>", unsafe_allow_html=True)
+        st.progress(stochastic_pct, text="Stochastic Confidence")
+
+        st.markdown(f"<small><b>ATR Volatility Context:</b> {atr_pct:.1f}%</small>", unsafe_allow_html=True)
+        st.progress(atr_pct, text="ATR Confidence")
+
+    except Exception as e:
+        st.error(f"Error displaying signal: {e}")
 
 # --- Middle Row: Technical Summary + History ---
 with middle_row[0]:
