@@ -4,7 +4,7 @@ from datetime import timedelta
 
 # --- Streamlit Config ---
 st.set_page_config(page_title="XAUUSD Fibonacci Demo", layout="wide")
-st.title("📈 GOLD (XAU/USD) Fibonacci Signal Scanner")
+st.markdown("<h3 style='margin-bottom: 0;'>📈 GOLD (XAU/USD) Fibonacci Signal Scanner</h3>", unsafe_allow_html=True)
 
 # --- Layout Structure ---
 header = st.container()
@@ -45,29 +45,29 @@ levels = {
 with header:
     st.markdown("---")
     cols = st.columns(4)
-    with cols[0]: st.metric("Current Price", "$1975.50")
-    with cols[1]: st.metric("Today's High", "$2001.00")
-    with cols[2]: st.metric("Today's Low", "$1948.00")
-    with cols[3]: st.metric("24h Change", "+1.25%", delta_color="off")
+    with cols[0]: st.markdown("<small><b>Current Price:</b> $1975.50</small>", unsafe_allow_html=True)
+    with cols[1]: st.markdown("<small><b>Today's High:</b> $2001.00</small>", unsafe_allow_html=True)
+    with cols[2]: st.markdown("<small><b>Today's Low:</b> $1948.00</small>", unsafe_allow_html=True)
+    with cols[3]: st.markdown("<small><b>24h Change:</b> +1.25%</small>", unsafe_allow_html=True)
     st.markdown("---")
 
 # --- Top Row: Chart + Signal ---
 with top_row[0]:  # Chart Column
-    st.subheader("📊 Price Chart")
+    st.markdown("<h5>📊 Price Chart</h5>", unsafe_allow_html=True)
     st.image("https://via.placeholder.com/1200x400.png?text=Interactive+Chart+Area", 
              use_container_width=True)
 
 with top_row[1]:  # Signal Column
-    st.subheader("🚦 Active Signal")
-    st.markdown("### 🔴 SELL Recommendation")
-    st.metric("Entry Price", "1975.50")
-    st.metric("Take Profit", "1962.00")
-    st.metric("Stop Loss", "1985.00")
+    st.markdown("<h5>🚦 Active Signal</h5>", unsafe_allow_html=True)
+    st.markdown("#### 🔴 SELL Recommendation")
+    st.markdown("<small><b>Entry Price:</b> 1975.50</small>", unsafe_allow_html=True)
+    st.markdown("<small><b>Take Profit:</b> 1962.00</small>", unsafe_allow_html=True)
+    st.markdown("<small><b>Stop Loss:</b> 1985.00</small>", unsafe_allow_html=True)
     st.progress(75, text="Signal Strength")
 
 # --- Middle Row: Fibonacci + History ---
 with middle_row[0]:
-    st.subheader("📐 Fibonacci Levels")
+    st.markdown("<h5>📐 Fibonacci Levels</h5>", unsafe_allow_html=True)
     fib_df = pd.DataFrame(levels.items(), columns=["Level", "Price"])
     st.dataframe(
         fib_df.set_index("Level").style.format({"Price": "{:.2f}"}),
@@ -76,7 +76,7 @@ with middle_row[0]:
     )
 
 with middle_row[1]:
-    st.subheader("🕒 Signal History")
+    st.markdown("<h5>🕒 Signal History</h5>", unsafe_allow_html=True)
     history_data = {
         "Time": ["14:30", "13:45", "12:15", "11:00"],
         "Signal": ["🔴 Sell", "🟢 Buy", "⚪ Hold", "🔴 Sell"],
@@ -92,7 +92,7 @@ with middle_row[1]:
 # --- Bottom Chart Container ---
 with chart_container:
     st.markdown("---")
-    st.subheader("📉 Technical Analysis")
+    st.markdown("<h5>📉 Technical Analysis</h5>", unsafe_allow_html=True)
     cols = st.columns(3)
     with cols[0]: st.image("https://via.placeholder.com/400x200.png?text=RSI+Indicator")
     with cols[1]: st.image("https://via.placeholder.com/400x200.png?text=MACD+Indicator")
