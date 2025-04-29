@@ -37,15 +37,15 @@ levels = {
     "100.0%": low,
 }
 
-# --- NEW: Mock Signal History Data ---
+# --- Updated Mock History with Icons ---
 def generate_mock_history():
     base_time = df["Time"].iloc[-1]
     return pd.DataFrame([
-        {"Time": base_time - timedelta(hours=4), "Price": 1968.20, "Type": "BUY"},
-        {"Time": base_time - timedelta(hours=3), "Price": 1972.80, "Type": "SELL"},
-        {"Time": base_time - timedelta(hours=2), "Price": 1975.50, "Type": "SELL"},
-        {"Time": base_time - timedelta(hours=1), "Price": 1971.30, "Type": "BUY"},
-        {"Time": base_time, "Price": 1975.50, "Type": "SELL"}
+        {"Time": base_time - timedelta(hours=4), "Price": 1968.20, "Signal": "🟢 BUY"},
+        {"Time": base_time - timedelta(hours=3), "Price": 1972.80, "Signal": "🔴 SELL"},
+        {"Time": base_time - timedelta(hours=2), "Price": 1975.50, "Signal": "🔴 SELL"},
+        {"Time": base_time - timedelta(hours=1), "Price": 1971.30, "Signal": "🟢 BUY"},
+        {"Time": base_time, "Price": 1975.50, "Signal": "🔴 SELL"}
     ])
 
 history_df = generate_mock_history()
@@ -70,12 +70,13 @@ with col2:
             "Price": "${:.2f}",
             "Time": lambda x: x.strftime("%Y-%m-%d %H:%M")
         }).apply(lambda row: [
-            f"color: {'#4CAF50' if row.Type=='BUY' else '#FF5252'}"
+            f"color: {'#4CAF50' if 'BUY' in row.Signal else '#FF5252'}"
             for _ in row], axis=1),
-        height=400
+        height=400,
+        column_order=["Time", "Signal", "Price"]
     )
 
-# --- Existing Signal Log ---
+# --- Signal Log with Icons ---
 st.subheader("Signal Log (Demo)")
 demo_log = [
     {"time": "2024-02-20 15:00:00", "signal": "🔴 SELL @ 1972.80"},
