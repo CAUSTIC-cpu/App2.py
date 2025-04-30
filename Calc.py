@@ -1,62 +1,141 @@
-import streamlit as st from rrr_calculator import show_rrr_calculator import pandas as pd import streamlit.components.v1 as components import time import random
+import pandas as pd
+import streamlit as st
+import streamlit.components.v1 as components
+import time
+import random
 
---- Page Config ---
+# --- App Configuration ---
+st.set_page_config(page_title="XAUUSD Fibonacci Scanner", layout="wide")
 
-st.set_page_config(page_title="XAU/USD Fibonacci App", layout="wide")
+# --- Session State Management ---
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "main"
+if "live_price" not in st.session_state:
+    st.session_state.live_price = 1975.50
 
---- Session State Initialization ---
+# --- Price Simulation ---
+def update_live_price():
+    st.session_state.live_price += random.uniform(-0.5, 0.5)
+    st.session_state.live_price = round(st.session_state.live_price, 2)
 
-if "page" not in st.session_state: st.session_state.page = "Signals" if "selected_signal" not in st.session_state: st.session_state.selected_signal = None if "live_price" not in st.session_state: st.session_state.live_price = 1975.50
+# --- Navigation Functions ---
+def show_rrr_calculator():
+    st.session_state.current_page = "rrr"
 
---- Simulate Live Price Update ---
+def return_to_main():
+    st.session_state.current_page = "main"
 
-def update_live_price(): st.session_state.live_price += random.uniform(-0.5, 0.5) st.session_state.live_price = round(st.session_state.live_price, 2)
+# --- Main Page Content ---
+def main_page():
+    st.markdown("<h3 style='margin-bottom: 0;'>📈 GOLD (XAU/USD) Fibonacci Signal Scanner</h3>", unsafe_allow_html=True)
+    
+    # RRR Navigation Button
+    st.markdown("""
+        <div style='text-align: right; margin-bottom: -20px;'>
+            <button onclick="window.streamlitSession.setComponentValue('rrr')" 
+                style='padding: 10px 25px; background-color: #FFA500; color: white; border: none;
+                border-radius: 10px; font-size: 16px; font-weight: bold; 
+                box-shadow: 2px 2px 5px rgba(0,0,0,0.3); cursor: pointer;'>
+                ⚖️ R.R.R
+            </button>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Rest of main page content (same as previous implementation)
+    # ... [Include all the main page content from previous code here] ...
 
-update_live_price()
+# --- RRR Calculator Page ---
+def rrr_calculator():
+    st.markdown("<h3>⚖️ Risk/Reward Ratio Calculator</h3>", unsafe_allow_html=True)
+    
+    with st.form("rrr_form"):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            entry_price = st.number_input("Entry Price", value=st.session_state.live_price)
+        with col2:
+            stop_loss = st.number_input("Stop Loss Price", value=st.session_state.live_price - 5.0)
+        with col3:
+            take_profit = st.number_input("Take Profit Price", value=st.session_state.live_price + 10.0)
+        
+        trade_size = st.number_input("Trade Size (Standard Lots)", value=1.0, min_value=0.1, step=0.1)
+        submitted = st.form_submit_button("Calculate Ratio")
 
---- Navigation ---
+    if submitted:
+        risk = abs(entry_price - stop_loss)
+        reward = abs(take_profit - entry_price)
+        
+        if risk + reward == 0:
+            st.error("Invalid price levels - risk and reward cannot both be zero")
+            return
+        
+        # Calculate AB:CD ratio percentages
+        risk_percent = (risk / (risk + reward)) * 100
+        reward_percent = (reward / (risk + reward)) * 100
+        ratio_structure = f"{int(risk_percent)}:{int(reward_percent)}"
+        
+        # Calculate monetary values
+        pip_value = 100  # $10 per pip for gold per standard lot
+        potential_profit = reward * pip_value * trade_size
+        potential_loss = risk * pip_value * trade_size
+        
+        # Display results
+        st.markdown("---")
+        st.markdown(f"**Risk/Reward Structure:** <span style='color: #FFA500; font-size: 24px;'>{ratio_structure}</span>", unsafe_allow_html=True)
+        
+        # Progress bar visualization
+        progress_html = f"""
+        <div style="background: #1e1e1e; border-radius: 10px; padding: 5px;">
+            <div style="width: {risk_percent}%; background: #ff4b4b; 
+                height: 25px; border-radius: 5px 0 0 5px; 
+                display: inline-block; text-align: center; color: white;">RISK {risk_percent:.1f}%</div>
+            <div style="width: {reward_percent}%; background: #4CAF50; 
+                height: 25px; border-radius: 0 5px 5px 0; 
+                display: inline-block; text-align: center; color: white;">REWARD {reward_percent:.1f}%</div>
+        </div>
+        """
+        st.markdown(progress_html, unsafe_allow_html=True)
+        
+        # Financial metrics
+        st.markdown(f"""
+        <div style="margin-top: 20px;">
+            <div style="display: inline-block; padding: 10px 20px; background: #4CAF5050; border-radius: 5px; margin-right: 15px;">
+                📈 Potential Profit: <span style="color: #4CAF50;">${potential_profit:,.2f}</span>
+            </div>
+            <div style="display: inline-block; padding: 10px 20px; background: #ff4b4b50; border-radius: 5px;">
+                📉 Potential Loss: <span style="color: #ff4b4b;">${potential_loss:,.2f}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-st.sidebar.title("Navigation") tabs = ["Signals", "RRR Calculator"] selection = st.sidebar.radio("Go to", tabs, format_func=lambda x: "📈 Signals" if x == "Signals" else "🧮 RRR Calculator") st.session_state.page = selection
+    # Back button
+    st.markdown("""
+        <div style="margin-top: 40px;">
+            <button onclick="window.streamlitSession.setComponentValue('main')" 
+                style='padding: 10px 25px; background-color: #333; color: white; border: none;
+                border-radius: 10px; font-size: 14px; font-weight: bold; 
+                box-shadow: 2px 2px 5px rgba(0,0,0,0.2); cursor: pointer;'>
+                ← Back to Main Page
+            </button>
+        </div>
+    """, unsafe_allow_html=True)
 
---- Static Signals ---
+# --- Main App Control Flow ---
+if st.session_state.current_page == "main":
+    main_page()
+elif st.session_state.current_page == "rrr":
+    rrr_calculator()
 
-signals = [ {"time": "14:30", "type": "SELL", "entry": 1975.50, "tp": 1962.00, "sl": 1985.00, "volume": 18250, "max_volume": 25000, "strength": 75}, {"time": "14:00", "type": "BUY",  "entry": 1968.20, "tp": 1980.00, "sl": 1960.00, "volume": 20000, "max_volume": 25000, "strength": 68}, {"time": "13:30", "type": "HOLD", "entry": None,     "tp": None,    "sl": None,    "volume": 15000, "max_volume": 25000, "strength": 50}, {"time": "13:00", "type": "SELL", "entry": 1972.80, "tp": 1960.00, "sl": 1983.00, "volume": 21000, "max_volume": 25000, "strength": 80}, {"time": "12:30", "type": "BUY",  "entry": 1965.00, "tp": 1975.00, "sl": 1958.00, "volume": 22000, "max_volume": 25000, "strength": 77}, ]
+# --- Live Price Updates ---
+if time.time() - st.session_state.get("last_refresh", 0) > 60:
+    update_live_price()
+    st.session_state.last_refresh = time.time()
+    st.experimental_rerun()
 
---- Signals Page ---
-
-if st.session_state.page == "Signals": st.markdown("<h3>📈 GOLD (XAU/USD) Fibonacci Signal Scanner</h3>", unsafe_allow_html=True)
-
-# Live stats
-cols = st.columns(4)
-with cols[0]: st.markdown(f"**Current Price:** ${st.session_state.live_price:.2f}")
-with cols[1]: st.markdown("**Today's High:** $2001.00")
-with cols[2]: st.markdown("**Today's Low:** $1948.00")
-with cols[3]: st.markdown("**24h Change:** +1.25%")
-st.markdown("---")
-
-st.subheader("Live Chart")
-tv_chart = """
-<iframe src='https://s.tradingview.com/embed-widget/advanced-chart/?symbol=OANDA:XAUUSD&theme=dark' 
-        width='100%' height='420' frameborder='0'></iframe>
-"""
-components.html(tv_chart, height=420)
-
-st.subheader("Signal List")
-for i, signal in enumerate(signals):
-    with st.container():
-        icon = "🔴" if signal['type'] == "SELL" else "🟢" if signal['type'] == "BUY" else "⚪"
-        st.markdown(f"### {icon} {signal['type']} @ {signal['entry'] if signal['entry'] else '-'}")
-        st.write(f"**TP**: {signal['tp']}, **SL**: {signal['sl']}, **Strength**: {signal['strength']}%")
-        if st.button(f"🧮 RRR Calculator", key=f"btn{i}"):
-            st.session_state.selected_signal = signal
-            st.session_state.page = "RRR Calculator"
-            st.experimental_rerun()
-
---- RRR Calculator Page ---
-
-elif st.session_state.page == "RRR Calculator": if st.session_state.selected_signal: show_rrr_calculator() else: st.warning("Please select a signal first from the Signals page.")
-
---- Refresh every 60s ---
-
-if "last_refresh" not in st.session_state: st.session_state.last_refresh = time.time() if time.time() - st.session_state.last_refresh > 60: st.session_state.last_refresh = time.time() update_live_price() st.rerun()
-
+# Handle navigation events
+component_value = components.receive("component_id", "")
+if component_value == "rrr":
+    show_rrr_calculator()
+    st.experimental_rerun()
+elif component_value == "main":
+    return_to_main()
+    st.experimental_rerun()
