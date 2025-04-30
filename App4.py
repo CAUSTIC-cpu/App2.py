@@ -1,20 +1,10 @@
 import streamlit as st
-import requests
 import time
 import streamlit.components.v1 as components
 from rrr_calculator import show_rrr_calculator
 
 # --- Page Config ---
 st.set_page_config(page_title="XAU/USD Fibonacci App", layout="wide")
-
-# --- API Configuration ---
-if "GOLDAPI_API_KEY" not in st.secrets:
-    st.error("❌ Missing API key in secrets.toml")
-    st.stop()
-
-API_KEY = st.secrets["GOLDAPI_API_KEY"]
-HEADERS = {"X-API-KEY": API_KEY}
-BASE_URL = "https://www.goldapi.io/api/XAUUSD/USD"
 
 # --- Session State Initialization ---
 if "page" not in st.session_state:
@@ -23,54 +13,46 @@ if "selected_signal" not in st.session_state:
     st.session_state.selected_signal = None
 if "live_price" not in st.session_state:
     st.session_state.update({
-        "live_price": None,
-        "todays_high": None,
-        "todays_low": None,
-        "change_pct": None,
+        "live_price": 1975.50,  # Initial mock value
+        "todays_high": 2001.00,  # Mock value
+        "todays_low": 1948.00,  # Mock value
+        "change_pct": 1.25,  # Mock value
         "last_refresh": time.time(),
         "api_error": False
     })
-
-# --- API Functions ---
-@st.cache_data(ttl=60, show_spinner=False)
-def fetch_gold_price():
-    try:
-        response = requests.get(BASE_URL, headers=HEADERS)
-        response.raise_for_status()
-        data = response.json()
-        return {
-            "price": float(data.get("price", 0)),
-            "high": float(data.get("high", 0)),
-            "low": float(data.get("low", 0)),
-            "change_pct": float(str(data.get("change_pct", 0)).replace('%', '')),
-            "timestamp": time.time()
-        }
-    except requests.exceptions.HTTPError as e:
-        st.error(f"API Error: {e.response.status_code}")
-        return None
-    except Exception as e:
-        st.error(f"Connection Error: {str(e)}")
-        return None
-
-# --- Data Refresh ---
-def update_market_data():
-    fresh_data = fetch_gold_price()
-    if fresh_data:
-        st.session_state.update({
-            "live_price": fresh_data["price"],
-            "todays_high": fresh_data["high"],
-            "todays_low": fresh_data["low"],
-            "change_pct": fresh_data["change_pct"],
-            "last_refresh": fresh_data["timestamp"],
-            "api_error": False
-        })
-    else:
-        st.session_state.api_error = True
 
 # --- Navigation ---
 st.sidebar.title("Navigation")
 selection = st.sidebar.radio("Go to", ["Signals", "RRR Calculator"])
 st.session_state.page = selection
+
+# --- Header with Live API Toggle ---
+with st.container():
+    cols = st.columns([4, 1])
+    cols[0].markdown("<h3>📈 GOLD (XAU/USD) Fibonacci Signal Scanner</h3>", unsafe_allow_html=True)
+    
+    # Toggle between mock data and live API data
+    if "use_live_api" not in st.session_state:
+        st.session_state.use_live_api = False  # Start with mock data
+
+    if cols[1].button("🔄 Toggle Live API"):
+        st.session_state.use_live_api = not st.session_state.use_live_api
+        st.experimental_rerun()
+
+# --- Function to simulate live API data ---
+def update_market_data():
+    if st.session_state.use_live_api:
+        # Here we would fetch live data from the API
+        st.session_state.live_price = 1980.00  # Example live value
+        st.session_state.todays_high = 2005.00  # Example live value
+        st.session_state.todays_low = 1950.00  # Example live value
+        st.session_state.change_pct = 1.75  # Example live value
+    else:
+        # Mock data used when live API is not toggled
+        st.session_state.live_price = 1975.50
+        st.session_state.todays_high = 2001.00
+        st.session_state.todays_low = 1948.00
+        st.session_state.change_pct = 1.25
 
 # --- Signals Data ---
 signals = [
@@ -83,8 +65,7 @@ signals = [
 
 # --- Signals Page ---
 if st.session_state.page == "Signals":
-    if st.session_state.live_price is None:
-        update_market_data()
+    update_market_data()
 
     # Header with RRR icon
     with st.container():
@@ -147,4 +128,4 @@ elif st.session_state.page == "RRR Calculator":
     if st.session_state.selected_signal:
         show_rrr_calculator()
     else:
-        st.warning("No signal selected. Please choose a signal from the Signal List first.")
+        st.warning("No signal selected. Please choose a signal to calculate RRR.")
