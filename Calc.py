@@ -1,6 +1,6 @@
 import streamlit as st
 
-# Simulated selected signal (you'll replace this with actual signal data)
+# Simulated selected signal (replace with actual signal data)
 selected_signal = {
     "direction": "Buy",  # or "Sell"
     "entry": 2300.00,
@@ -21,16 +21,31 @@ entry_price = st.number_input("💰 Entry Price", value=selected_signal["entry"]
 stop_loss = st.number_input("❌ Stop Loss", value=selected_signal["stop_loss"], format="%.2f")
 take_profit = st.number_input("✅ Take Profit", value=selected_signal["take_profit"], format="%.2f")
 
-# --- RRR Calculation ---
+# --- RRR and % Calculation ---
 if entry_price and stop_loss and take_profit:
     risk = abs(entry_price - stop_loss)
     reward = abs(take_profit - entry_price)
+
     if risk == 0:
         st.warning("Stop Loss and Entry cannot be equal.")
     else:
         rrr = reward / risk
+
+        # Risk and Reward as % of Entry Price (Base = 100%)
+        risk_pct = (risk / entry_price) * 100
+        reward_pct = (reward / entry_price) * 100
+
         color = "green" if rrr >= 2 else "orange" if rrr >= 1 else "red"
-        st.markdown(f"### RRR: <span style='color:{color}; font-size: 24px;'>{rrr:.2f}</span>", unsafe_allow_html=True)
-        st.caption("Aim for RRR ≥ 2 for high-probability trades.")
+        st.markdown(
+            f"""
+            ### Risk : Reward
+            <span style='font-size:20px; color:{color};'>
+            {risk_pct:.2f}% : {reward_pct:.2f}%<br>
+            RRR = {rrr:.2f}
+            </span>
+            """,
+            unsafe_allow_html=True
+        )
+        st.caption("A reward of ≥ 200% of risk (RRR ≥ 2.0) is ideal.")
 else:
-    st.info("Fill in all fields to compute RRR.")
+    st.info("Fill in all fields to compute risk and reward.")
