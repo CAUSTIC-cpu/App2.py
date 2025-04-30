@@ -8,42 +8,80 @@ import requests
 # --- Page Config ---
 st.set_page_config(page_title="XAU/USD Fibonacci App", layout="wide")
 
+# --- API Configuration ---
+if "GOLDAPI_API_KEY" not in st.secrets:
+    st.error("❌ Missing API key in secrets.toml. Please configure your GoldAPI credentials.")
+    st.stop()
+
+API_KEY = st.secrets["GOLDAPI_API_KEY"]
+SYMBOL = "XAUUSD"
+HEADERS = {"X-API-KEY": API_KEY}
+BASE_URL = f"https://www.goldapi.io/api/{SYMBOL}/USD"
+
 # --- Session State Initialization ---
 if "page" not in st.session_state:
     st.session_state.page = "Signals"
 if "selected_signal" not in st.session_state:
     st.session_state.selected_signal = None
+
+# Initialize with API data
 if "live_price" not in st.session_state:
-    st.session_state.live_price = 1975.50
-if "todays_high" not in st.session_state:
-    st.session_state.todays_high = 2001.00
-if "todays_low" not in st.session_state:
-    st.session_state.todays_low = 1948.00
-if "change_pct" not in st.session_state:
-    st.session_state.change_pct = +1.25
+    st.session_state.update({
+        "live_price": None,
+        "todays_high": None,
+        "todays_low": None,
+        "change_pct": None,
+        "last_refresh": time.time(),
+        "api_error": False
+    })
 
-# --- GoldAPI Configuration ---
-API_KEY = "goldapi-6j5sma3qfw4a-io"
-SYMBOL = "XAUUSD"
-HEADERS = {
-    "x-access-token": API_KEY,
-    "Content-Type": "application/json"
-}
-
+# --- API Functions ---
+@st.cache_data(ttl=60, show_spinner=False)
 def fetch_gold_price():
+    """Fetch gold price data with error handling and rate limiting"""
     try:
-        response = requests.get(f"https://www.goldapi.io/api/{SYMBOL}", headers=HEADERS)
+        response = requests.get(BASE_URL, headers=HEADERS)
         response.raise_for_status()
         data = response.json()
         
-        st.session_state.live_price = data.get('price', st.session_state.live_price)
-        st.session_state.todays_high = data.get('high', st.session_state.todays_high)
-        st.session_state.todays_low = data.get('low', st.session_state.todays_low)
-        st.session_state.change_pct = data.get('change_pct', st.session_state.change_pct)
+        # Debug: Uncomment to see API response structure
+        # print("API Response:", data)
+
+        return {
+            "price": float(data.get("price", 0)),
+            "high": float(data.get("high", 0)),
+            "low": float(data.get("low", 0)),
+            "change_pct": float(str(data.get("change_pct", 0)).replace('%', '')),
+            "timestamp": time.time()
+        }
         
+    except requests.exceptions.HTTPError as e:
+        if response.status_code == 429:
+            st.error("⚠️ API rate limit exceeded. Please wait before refreshing.")
+            st.session_state.last_refresh = time.time() + 300  # 5 min cooldown
+        else:
+            st.error(f"API Error: {e.response.status_code} - {e.response.text}")
+        return None
     except Exception as e:
-        st.error(f"Error fetching data: {str(e)}")
-        # Keep previous values if API call fails
+        st.error(f"Connection Error: {str(e)}")
+        return None
+
+# --- Data Refresh Logic ---
+def update_market_data():
+    """Handle data refresh with error state management"""
+    fresh_data = fetch_gold_price()
+    
+    if fresh_data:
+        st.session_state.update({
+            "live_price": fresh_data["price"],
+            "todays_high": fresh_data["high"],
+            "todays_low": fresh_data["low"],
+            "change_pct": fresh_data["change_pct"],
+            "last_refresh": fresh_data["timestamp"],
+            "api_error": False
+        })
+    else:
+        st.session_state.api_error = True
 
 # --- Navigation ---
 st.sidebar.title("Navigation")
@@ -62,16 +100,39 @@ signals = [
 
 # --- Signals Page ---
 if st.session_state.page == "Signals":
+    # Initial data load
+    if st.session_state.live_price is None:
+        update_market_data()
+
     st.markdown("<h3>📈 GOLD (XAU/USD) Fibonacci Signal Scanner</h3>", unsafe_allow_html=True)
+    
+    # Refresh controls
+    with st.container():
+        cols = st.columns([3,1])
+        with cols[0]:
+            st.caption(f"Last update: {time.strftime('%H:%M:%S', time.localtime(st.session_state.last_refresh))}")
+        with cols[1]:
+            if st.button("🔄 Manual Refresh", help="Force immediate data refresh"):
+                update_market_data()
+                st.rerun()
 
     # Live stats
-    cols = st.columns(4)
-    with cols[0]: st.markdown(f"**Current Price:** ${st.session_state.live_price:.2f}")
-    with cols[1]: st.markdown(f"**Today's High:** ${st.session_state.todays_high:.2f}")
-    with cols[2]: st.markdown(f"**Today's Low:** ${st.session_state.todays_low:.2f}")
-    with cols[3]: st.markdown(f"**24h Change:** {st.session_state.change_pct:.2f}%")
-    st.markdown("---")
+    with st.container():
+        cols = st.columns(4)
+        metrics = [
+            ("Current Price", f"${st.session_state.live_price:.2f}" if st.session_state.live_price else "N/A"),
+            ("Today's High", f"${st.session_state.todays_high:.2f}" if st.session_state.todays_high else "N/A"),
+            ("Today's Low", f"${st.session_state.todays_low:.2f}" if st.session_state.todays_low else "N/A"),
+            ("24h Change", 
+             f"{st.session_state.change_pct:+.2f}%" if st.session_state.change_pct is not None else "N/A")
+        ]
+        
+        for col, (label, value) in zip(cols, metrics):
+            with col:
+                st.markdown(f"**{label}:** {value}")
+        st.markdown("---")
 
+    # Chart display
     st.subheader("Live Chart")
     tv_chart = """
     <iframe src='https://s.tradingview.com/embed-widget/advanced-chart/?symbol=OANDA:XAUUSD&theme=dark' 
@@ -79,16 +140,23 @@ if st.session_state.page == "Signals":
     """
     components.html(tv_chart, height=420)
 
+    # Signal list
     st.subheader("Signal List")
     for i, signal in enumerate(signals):
         with st.container():
             icon = "🔴" if signal['type'] == "SELL" else "🟢" if signal['type'] == "BUY" else "⚪"
-            st.markdown(f"### {icon} {signal['type']} @ {signal['entry'] if signal['entry'] else '-'}")
-            st.write(f"**TP**: {signal['tp']}, **SL**: {signal['sl']}, **Strength**: {signal['strength']}%")
-            if st.button(f"📊 Calculate RRR", key=f"btn{i}"):
-                st.session_state.selected_signal = signal
-                st.session_state.page = "RRR Calculator"
-                st.experimental_rerun()
+            entry = f"@ {signal['entry']}" if signal['entry'] else ""
+            st.markdown(f"### {icon} {signal['type']} {entry}")
+            
+            cols = st.columns([3,1])
+            with cols[0]:
+                st.write(f"**TP**: {signal['tp']}, **SL**: {signal['sl']}, **Strength**: {signal['strength']}%")
+            with cols[1]:
+                if st.button(f"📊 Calculate RRR", key=f"btn_{i}"):
+                    st.session_state.selected_signal = signal
+                    st.session_state.page = "RRR Calculator"
+                    st.rerun()
+            st.markdown("---")
 
 # --- RRR Calculator Page ---
 elif st.session_state.page == "RRR Calculator":
@@ -96,15 +164,14 @@ elif st.session_state.page == "RRR Calculator":
         show_rrr_calculator()
     else:
         st.warning("Please select a signal first from the Signals page.")
-
-# --- Auto Refresh Logic ---
-if "last_refresh" not in st.session_state:
-    st.session_state.last_refresh = time.time()
-
-if time.time() - st.session_state.last_refresh > 60:
-    try:
-        fetch_gold_price()
-        st.session_state.last_refresh = time.time()
+    if st.button("⬅️ Back to Signals"):
+        st.session_state.page = "Signals"
         st.rerun()
-    except Exception as e:
-        st.error(f"Auto-refresh failed: {str(e)}")
+
+# --- Auto-Refresh Logic ---
+if st.session_state.page == "Signals" and not st.session_state.api_error:
+    elapsed = time.time() - st.session_state.last_refresh
+    if elapsed > 60:  # Refresh every 60 seconds
+        with st.spinner("Updating market data..."):
+            update_market_data()
+            st.rerun()
