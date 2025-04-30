@@ -42,7 +42,7 @@ def fetch_gold_price():
             "price": float(data.get("price", 0)),
             "high": float(data.get("high", 0)),
             "low": float(data.get("low", 0)),
-            "change_pct": float(str(data.get("change_pct", 0)).replace('%', ''),
+            "change_pct": float(str(data.get("change_pct", 0)).replace('%', '')),
             "timestamp": time.time()
         }
     except requests.exceptions.HTTPError as e:
@@ -86,8 +86,14 @@ if st.session_state.page == "Signals":
     if st.session_state.live_price is None:
         update_market_data()
 
-    st.markdown("<h3>📈 GOLD (XAU/USD) Fibonacci Signal Scanner</h3>", unsafe_allow_html=True)
-    
+    # Header with RRR icon
+    with st.container():
+        cols = st.columns([4, 1])
+        cols[0].markdown("<h3>📈 GOLD (XAU/USD) Fibonacci Signal Scanner</h3>", unsafe_allow_html=True)
+        if cols[1].button("📊 RRR Calculator", help="Open Risk/Reward Calculator"):
+            st.session_state.page = "RRR Calculator"
+            st.rerun()
+
     # Status Bar
     with st.container():
         cols = st.columns([3,1])
@@ -130,18 +136,15 @@ if st.session_state.page == "Signals":
 
 # --- RRR Calculator Page ---
 elif st.session_state.page == "RRR Calculator":
-    if st.button("⬅️ Back to Signals"):
-        st.session_state.page = "Signals"
-        st.rerun()
-    
+    # Header with back button
+    with st.container():
+        cols = st.columns([4, 1])
+        cols[0].markdown("<h3>💰 Risk/Reward Ratio Calculator</h3>", unsafe_allow_html=True)
+        if cols[1].button("⬅️ Back to Signals"):
+            st.session_state.page = "Signals"
+            st.rerun()
+
     if st.session_state.selected_signal:
         show_rrr_calculator()
     else:
-        st.warning("No signal selected")
-
-# --- Auto-Refresh ---
-if st.session_state.page == "Signals" and not st.session_state.api_error:
-    if time.time() - st.session_state.last_refresh > 60:
-        with st.spinner("Updating market data..."):
-            update_market_data()
-            st.rerun()
+        st.warning("No signal selected. Please choose a signal from the Signal List first.")
