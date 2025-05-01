@@ -1,4 +1,5 @@
 import streamlit as st
+import requests
 import time
 import streamlit.components.v1 as components
 from rrr_calculator import show_rrr_calculator
@@ -11,48 +12,68 @@ if "page" not in st.session_state:
     st.session_state.page = "Signals"
 if "selected_signal" not in st.session_state:
     st.session_state.selected_signal = None
+if "use_live_api" not in st.session_state:
+    st.session_state.use_live_api = False
 if "live_price" not in st.session_state:
     st.session_state.update({
-        "live_price": 1975.50,  # Initial mock value
-        "todays_high": 2001.00,  # Mock value
-        "todays_low": 1948.00,  # Mock value
-        "change_pct": 1.25,  # Mock value
+        "live_price": 1975.50,
+        "todays_high": 2001.00,
+        "todays_low": 1948.00,
+        "change_pct": 1.25,
         "last_refresh": time.time(),
         "api_error": False
     })
+
+# --- Attempt to get API Key ---
+API_KEY = st.secrets.get("GOLDAPI_API_KEY")
+API_AVAILABLE = API_KEY is not None
+HEADERS = {
+    "x-access-token": API_KEY,
+    "Content-Type": "application/json"
+} if API_AVAILABLE else {}
+BASE_URL = "https://www.goldapi.io/api/XAU/USD"
+
+# --- Toggle Mock/Live Mode ---
+def update_market_data():
+    if st.session_state.use_live_api and API_AVAILABLE:
+        try:
+            response = requests.get(BASE_URL, headers=HEADERS)
+            response.raise_for_status()
+            data = response.json()
+            st.session_state.update({
+                "live_price": float(data.get("price", 0)),
+                "todays_high": float(data.get("high", 0)),
+                "todays_low": float(data.get("low", 0)),
+                "change_pct": float(str(data.get("chgpct", 0)).replace('%', '')),
+                "last_refresh": time.time(),
+                "api_error": False
+            })
+        except requests.exceptions.RequestException as e:
+            st.session_state.api_error = True
+            st.error(f"API Request Failed: {e}")
+    else:
+        # Fallback to mock data
+        st.session_state.update({
+            "live_price": 1975.50,
+            "todays_high": 2001.00,
+            "todays_low": 1948.00,
+            "change_pct": 1.25,
+            "last_refresh": time.time(),
+            "api_error": False
+        })
 
 # --- Navigation ---
 st.sidebar.title("Navigation")
 selection = st.sidebar.radio("Go to", ["Signals", "RRR Calculator"])
 st.session_state.page = selection
 
-# --- Header with Live API Toggle ---
+# --- Header with Toggle ---
 with st.container():
     cols = st.columns([4, 1])
     cols[0].markdown("<h3>📈 GOLD (XAU/USD) Fibonacci Signal Scanner</h3>", unsafe_allow_html=True)
-    
-    # Toggle between mock data and live API data
-    if "use_live_api" not in st.session_state:
-        st.session_state.use_live_api = False  # Start with mock data
-
     if cols[1].button("🔄 Toggle Live API"):
         st.session_state.use_live_api = not st.session_state.use_live_api
-        st.experimental_rerun()
-
-# --- Function to simulate live API data ---
-def update_market_data():
-    if st.session_state.use_live_api:
-        # Here we would fetch live data from the API
-        st.session_state.live_price = 1980.00  # Example live value
-        st.session_state.todays_high = 2005.00  # Example live value
-        st.session_state.todays_low = 1950.00  # Example live value
-        st.session_state.change_pct = 1.75  # Example live value
-    else:
-        # Mock data used when live API is not toggled
-        st.session_state.live_price = 1975.50
-        st.session_state.todays_high = 2001.00
-        st.session_state.todays_low = 1948.00
-        st.session_state.change_pct = 1.25
+        st.rerun()
 
 # --- Signals Data ---
 signals = [
@@ -67,7 +88,7 @@ signals = [
 if st.session_state.page == "Signals":
     update_market_data()
 
-    # Header with RRR icon
+    # Page Header and RRR nav
     with st.container():
         cols = st.columns([4, 1])
         cols[0].markdown("<h3>📈 GOLD (XAU/USD) Fibonacci Signal Scanner</h3>", unsafe_allow_html=True)
@@ -79,7 +100,7 @@ if st.session_state.page == "Signals":
     with st.container():
         cols = st.columns([3,1])
         cols[0].caption(f"Last update: {time.strftime('%H:%M:%S', time.localtime(st.session_state.last_refresh))}")
-        if cols[1].button("🔄 Refresh"):
+        if cols[1].button("🔁 Refresh"):
             update_market_data()
             st.rerun()
 
