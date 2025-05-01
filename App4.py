@@ -1,6 +1,7 @@
 import streamlit as st
-import requests
 import time
+import random
+from rrr_calculator import show_rrr_calculator
 
 # --- Page Config ---
 st.set_page_config(page_title="XAU/USD Fibonacci App", layout="wide")
@@ -12,103 +13,102 @@ if "selected_signal" not in st.session_state:
     st.session_state.selected_signal = None
 if "use_live_api" not in st.session_state:
     st.session_state.use_live_api = False
-if "user_api_key" not in st.session_state:
-    st.session_state.user_api_key = ""
-if "live_price" not in st.session_state:
-    st.session_state.update({
-        "live_price": 1975.50,
-        "todays_high": 2001.00,
-        "todays_low": 1948.00,
-        "change_pct": 1.25,
-        "last_refresh": time.time(),
-        "api_error": False
-    })
+if "live_data" not in st.session_state:
+    st.session_state.live_data = {
+        "price": 1975.00,
+        "high": 1985.00,
+        "low": 1960.00,
+        "change_pct": 0.35,
+        "last_refresh": time.time()
+    }
 
-# --- Function to Update Market Data ---
-def update_market_data():
-    if st.session_state.use_live_api:
-        if not st.session_state.user_api_key:
-            st.warning("Please enter your GoldAPI key in the sidebar to use Live API data.")
-            return
-        headers = {
-            "x-access-token": st.session_state.user_api_key,
-            "Content-Type": "application/json"
+# --- API Call (only if using live) ---
+def fetch_live_gold_price(api_key: str):
+    import requests
+    headers = {
+        "x-access-token": api_key,
+        "Content-Type": "application/json"
+    }
+    url = "https://www.goldapi.io/api/XAU/USD"
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        return {
+            "price": float(data.get("price", 0)),
+            "high": float(data.get("high", 0)),
+            "low": float(data.get("low", 0)),
+            "change_pct": float(str(data.get("chg_percent", 0)).replace('%', '')),
+            "last_refresh": time.time()
         }
-        try:
-            response = requests.get("https://www.goldapi.io/api/XAU/USD", headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            st.session_state.update({
-                "live_price": float(data.get("price", 0)),
-                "todays_high": float(data.get("high", 0)),
-                "todays_low": float(data.get("low", 0)),
-                "change_pct": float(str(data.get("chgpct", 0)).replace('%', '')),
-                "last_refresh": time.time(),
-                "api_error": False
-            })
-        except requests.exceptions.RequestException as e:
-            st.session_state.api_error = True
-            st.error(f"API Request Failed: {e}")
+    except Exception as e:
+        st.warning(f"Failed to fetch live data: {e}")
+        return None
+
+# --- Mock Data Refresh ---
+def generate_mock_data():
+    return {
+        "price": round(random.uniform(1960, 1980), 2),
+        "high": 1985.00,
+        "low": 1960.00,
+        "change_pct": round(random.uniform(-1.5, 1.5), 2),
+        "last_refresh": time.time()
+    }
+
+# --- Update Data Function ---
+def update_data():
+    if st.session_state.use_live_api:
+        api_key = st.text_input("Enter GoldAPI Key", type="password")
+        if api_key:
+            data = fetch_live_gold_price(api_key)
+            if data:
+                st.session_state.live_data = data
     else:
-        # Use mock data
-        st.session_state.update({
-            "live_price": 1975.50,
-            "todays_high": 2001.00,
-            "todays_low": 1948.00,
-            "change_pct": 1.25,
-            "last_refresh": time.time(),
-            "api_error": False
-        })
+        st.session_state.live_data = generate_mock_data()
 
-# --- Sidebar for Navigation & API ---
+# --- Navigation Sidebar ---
 st.sidebar.title("Navigation")
-st.session_state.page = st.sidebar.radio("Go to", ["Signals", "RRR Calculator"])
+selection = st.sidebar.radio("Go to", ["Signals", "RRR Calculator"])
+st.session_state.page = selection
 
-st.sidebar.markdown("### Settings")
-st.session_state.use_live_api = st.sidebar.checkbox("Use Live API", value=st.session_state.use_live_api)
-if st.session_state.use_live_api:
-    st.session_state.user_api_key = st.sidebar.text_input("Enter GoldAPI Key", type="password")
-
-# --- Signals Mock Data ---
+# --- Sample Signals ---
 signals = [
-    {"time": "14:30", "type": "SELL", "entry": 1975.50, "tp": 1962.00, "sl": 1985.00, "volume": 18250, "max_volume": 25000, "strength": 75},
-    {"time": "14:00", "type": "BUY",  "entry": 1968.20, "tp": 1980.00, "sl": 1960.00, "volume": 20000, "max_volume": 25000, "strength": 68},
-    {"time": "13:30", "type": "HOLD", "entry": None,     "tp": None,    "sl": None,    "volume": 15000, "max_volume": 25000, "strength": 50},
-    {"time": "13:00", "type": "SELL", "entry": 1972.80, "tp": 1960.00, "sl": 1983.00, "volume": 21000, "max_volume": 25000, "strength": 80},
-    {"time": "12:30", "type": "BUY",  "entry": 1965.00, "tp": 1975.00, "sl": 1958.00, "volume": 22000, "max_volume": 25000, "strength": 77},
+    {"time": "14:30", "type": "SELL", "entry": 1975.5, "tp": 1962.0, "sl": 1985.0, "strength": 75},
+    {"time": "14:00", "type": "BUY",  "entry": 1968.2, "tp": 1980.0, "sl": 1960.0, "strength": 68},
+    {"time": "13:30", "type": "HOLD", "entry": None,   "tp": None,   "sl": None,   "strength": 50},
 ]
 
-# --- Main UI ---
+# --- Signals Page ---
 if st.session_state.page == "Signals":
-    update_market_data()
+    with st.container():
+        col1, col2, col3 = st.columns([3, 1, 1])
+        col1.markdown("### 📈 XAU/USD Fibonacci Signal Scanner")
+        toggle = col2.toggle("Use Live API", value=st.session_state.use_live_api)
+        if toggle != st.session_state.use_live_api:
+            st.session_state.use_live_api = toggle
+            st.rerun()
+        if col3.button("📊 RRR Calculator"):
+            st.session_state.page = "RRR Calculator"
+            st.rerun()
 
-    # Header
-    st.markdown("## 📈 XAU/USD Fibonacci Signal Scanner")
+    update_data()
+    data = st.session_state.live_data
 
-    # Status Bar
-    cols = st.columns([3,1])
-    cols[0].caption(f"Last update: {time.strftime('%H:%M:%S', time.localtime(st.session_state.last_refresh))}")
-    if cols[1].button("🔄 Refresh"):
-        update_market_data()
-        st.rerun()
-
-    # Market Metrics
-    metric_cols = st.columns(4)
-    metric_cols[0].metric("Current Price", f"${st.session_state.live_price:.2f}")
-    metric_cols[1].metric("Today's High", f"${st.session_state.todays_high:.2f}")
-    metric_cols[2].metric("Today's Low", f"${st.session_state.todays_low:.2f}")
-    metric_cols[3].metric("24h Change", f"{st.session_state.change_pct:+.2f}%")
-
+    # Price Metrics
+    cols = st.columns(4)
+    cols[0].metric("Current Price", f"${data['price']:.2f}")
+    cols[1].metric("High", f"${data['high']:.2f}")
+    cols[2].metric("Low", f"${data['low']:.2f}")
+    cols[3].metric("Change %", f"{data['change_pct']:+.2f}%")
+    st.caption(f"Last updated: {time.strftime('%H:%M:%S', time.localtime(data['last_refresh']))}")
     st.markdown("---")
 
-    # Signals List
-    st.subheader("Signal List")
+    # Signal Display
     for i, signal in enumerate(signals):
-        icon = "🔴" if signal['type'] == "SELL" else "🟢" if signal['type'] == "BUY" else "⚪"
+        icon = "🔴" if signal["type"] == "SELL" else "🟢" if signal["type"] == "BUY" else "⚪"
         st.markdown(f"### {icon} {signal['type']} @ {signal['entry'] or '-'}")
-        cols = st.columns([3,1])
-        cols[0].write(f"**TP:** {signal['tp']} | **SL:** {signal['sl']} | **Strength:** {signal['strength']}%")
-        if cols[1].button("📊 Calculate RRR", key=f"btn_{i}"):
+        st.write(f"**TP:** {signal['tp']} | **SL:** {signal['sl']} | **Strength:** {signal['strength']}%")
+        if st.button("📊 Calculate RRR", key=f"calc_{i}"):
             st.session_state.selected_signal = signal
             st.session_state.page = "RRR Calculator"
             st.rerun()
@@ -116,14 +116,13 @@ if st.session_state.page == "Signals":
 
 # --- RRR Calculator Page ---
 elif st.session_state.page == "RRR Calculator":
-    st.markdown("## 💰 Risk/Reward Ratio Calculator")
-    if st.button("⬅️ Back to Signals"):
+    col1, col2 = st.columns([4, 1])
+    col1.markdown("### 💰 Risk/Reward Calculator")
+    if col2.button("⬅️ Back"):
         st.session_state.page = "Signals"
         st.rerun()
 
     if st.session_state.selected_signal:
-        # Call your RRR calculator function
-        from rrr_calculator import show_rrr_calculator
         show_rrr_calculator()
     else:
-        st.warning("No signal selected. Please choose one from the signals page.")
+        st.info("No signal selected. Please choose a signal from the Signals page.")
