@@ -2,7 +2,7 @@
 import streamlit as st
 import time
 st.markdown("Embed your chart using `st.markdown` with HTML if safe.")
-from rrr_calculator import show_rrr_calculator
+
 
 # --- Config ---
 st.set_page_config(page_title="XAU/USD Fibonacci App", layout="wide")
